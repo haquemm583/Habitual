@@ -16,7 +16,7 @@ function Header() {
         <Link to="/">Habitual</Link>
       </h1>
 
-      <nav class={"nav-links"}>
+      <nav className="nav-links">
         <NavLink to="/" end>Home</NavLink>  {/* end is needed otherwise the slash will match all links */}
         <NavLink to="/dashboard">Dashboard</NavLink>
         <NavLink to="/about">About</NavLink>
