@@ -10,7 +10,7 @@
 function Home() {
   return (
     <div className="page home-page">
-      <h2>Home Page</h2>
+      <h2 className="my-[0.83em] text-2xl font-bold">Home Page</h2>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 
 function Dashboard() {
 
+
   // TODO: maybe lift some states like the tasks
   // to App.jsx so the app doesn't load/fetch data
   // each time you move away and back to the dashboard.
@@ -31,6 +32,14 @@ function Dashboard() {
       .finally(() => setLoading(false));
   }, []); // empty array - run once when the page loads
 
+
+  function toggleTask(taskID) {
+    setTasks((currentTasks) => 
+      currentTasks.map((task) =>
+        task.id === taskID ? {...task, completed:task.completed} : task
+      )
+    );
+  }
   // loading state
   if (loading) {
     return (
@@ -53,13 +62,32 @@ function Dashboard() {
   // successful data fetch
   return (
     <div className="page dashboard-page">
-      <h2>Dashboard Page</h2>
+      <h2 className="my-[0.83em] text-2xl font-bold">Dashboard Page</h2>
 
       {/* TODO: remove this when we develop the project more */}
-      <ul>
-        {tasks.map((task) => {
-          return <li key={task.id}>{task.name}</li>
-        })}
+      <ul className="mt-6 space-y-1">
+        {tasks.map((task) => (
+          <li key={task.id}>
+            <label className="flex min-h-16 cursor-pointer items-center gap-4 rounded-md border border-stone-200 bg-white px-4 py-3 hover:bg-stone-50">
+              <input
+                type="checkbox"
+                checked={task.completed}
+                onChange={() => toggleTask(task.id)}
+                className="size-5 shrink-0 cursor-pointer accent-green-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-800"
+              />
+
+              <span
+                className={`min-w-0 break-words ${
+                  task.completed
+                    ? 'text-stone-500 line-through'
+                    : 'text-stone-900'
+                }`}
+              >
+                {task.name}
+              </span>
+            </label>
+          </li>
+        ))}
       </ul>
     </div>
   );

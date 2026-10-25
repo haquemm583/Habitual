@@ -19,13 +19,12 @@ import Dashboard from './pages/Dashboard';
 import About from './pages/About';
 import NotFound from './pages/NotFound';
 
-import './App.css';
 
 function App() {
   return (
     <>
       <Header />
-      <main>
+      <main className="mx-auto max-w-[720px] flex-1 px-6 py-12">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="dashboard" element={<Dashboard />} />

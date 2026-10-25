@@ -10,7 +10,7 @@
 function About() {
   return (
     <div className="page about-page">
-      <h2>About Page</h2>
+      <h2 className="my-[0.83em] text-2xl font-bold">About Page</h2>
     </div>
   );
 }

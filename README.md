@@ -30,12 +30,11 @@ src/
   components/     Reusable presentation elements, such as the navbar
   pages/          Routed pages, such as Home, Dashboard, and About
   App.jsx         App entry component
-  App.css         App styles
-  index.css       Global styles
+  index.css       Tailwind CSS entry point
   main.jsx        React root
 ```
 
-The empty component and page folders contain `.gitkeep` files so Git tracks them. Remove each placeholder when adding the first real file to its folder.
+Styling uses Tailwind CSS through its Vite plugin. Add utility classes directly to JSX `className` attributes; `src/index.css` only imports Tailwind. No separate Tailwind or PostCSS configuration is needed.
 
 ## Next team tasks for the lab
 

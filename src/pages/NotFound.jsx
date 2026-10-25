@@ -13,8 +13,8 @@ import { Link } from "react-router-dom";
 function NotFound() {
   return (
     <div className="page not-found-page">
-      <h2>Page not found!</h2>
-      <Link to="/">Click here to go back to the home page.</Link>
+      <h2 className="my-[0.83em] text-2xl font-bold">Page not found!</h2>
+      <Link className="text-[#0000ee] underline visited:text-[#551a8b]" to="/">Click here to go back to the home page.</Link>
     </div>
   );
 }
