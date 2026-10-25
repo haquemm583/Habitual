@@ -17,6 +17,7 @@ import Footer from './components/layout/Footer';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import About from './pages/About';
+import NotFound from './pages/NotFound';
 
 import './App.css';
 
@@ -29,6 +30,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="about" element={<About />} />
+          <Route path="*" element={<NotFound />} /> {/* shows when an invalid route is typed in the url */}
         </Routes>
       </main>
       <Footer />
