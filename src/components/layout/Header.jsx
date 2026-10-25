@@ -25,6 +25,7 @@ function Header() {
 
       <nav className="flex gap-4">
         <NavLink className={navLinkClass} to="/" end>Home</NavLink>  {/* end is needed otherwise the slash will match all links */}
+        <NavLink className={navLinkClass} to="/login">Login</NavLink>
         <NavLink className={navLinkClass} to="/dashboard">Dashboard</NavLink>
         <NavLink className={navLinkClass} to="/about">About</NavLink>
       </nav>

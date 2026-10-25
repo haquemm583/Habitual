@@ -18,8 +18,7 @@ import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import About from './pages/About';
 import NotFound from './pages/NotFound';
-import Login from './pages/Login'; 
-
+import Login from './pages/Login';
 function App() {
   return (
     <>
