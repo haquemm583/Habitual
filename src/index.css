@@ -18,3 +18,24 @@ body {
   margin: 0;
   min-width: 320px;
 }
+
+/*
+  Makes root at least the full height of the viewport
+  and stacks the header, main, and footer
+  vertically, in the order they appear in App.jsx
+*/
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+  forces the main section to take all space
+  between the header and footer and pushes
+  the footer to the bottom even on short
+  pages
+*/
+main {
+  flex: 1;
+}
