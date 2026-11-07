@@ -1,0 +1,8 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./frontend:/app   # bind mount so source edits are live in the container
+      - /app/node_modules # keep the containers linux node modules
