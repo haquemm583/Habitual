@@ -4,5 +4,13 @@ services:
     ports:
       - "9000:9000"
     volumes:
-      - ./frontend:/app   # bind mount so source edits are live in the container
+      - ./frontend:/app   # bind mount: editing frontend files are updated in real time in container
       - /app/node_modules # keep the containers linux node modules
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app    # so the container sees live edits to backend files
+      - /app/node_modules # keep the linux node modules
+    command: npm run dev  # override the Dockerfile's CMD for local dev
