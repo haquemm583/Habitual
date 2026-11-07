@@ -4,7 +4,7 @@ services:
     ports:
       - "9000:9000"
     volumes:
-      - ./frontend:/app   # bind mount: editing frontend files are updated in real time in container
+      - ./frontend:/app   # bind mount: edits to frontend files show up in real time in the container
       - /app/node_modules # keep the containers linux node modules
   backend:
     build: ./backend
