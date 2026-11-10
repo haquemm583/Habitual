@@ -2,6 +2,8 @@ services:
   frontend:
     container_name: habitual-frontend
     build: ./frontend
+    environment:
+      API_PROXY_TARGET: http://backend:3000
     ports:
       - "9000:9000"
     volumes:
