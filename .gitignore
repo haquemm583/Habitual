@@ -27,3 +27,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local Codex project context
+/AGENTS.md
+/docs/requirements.md
+/docs/project-context.md

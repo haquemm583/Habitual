@@ -19,6 +19,8 @@ import Dashboard from './pages/Dashboard';
 import About from './pages/About';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
+import Register from './pages/Register';
+import RequireAuth from './components/auth/RequireAuth';
 function App() {
   return (
     <>
@@ -26,9 +28,10 @@ function App() {
       <main className="mx-auto max-w-[720px] flex-1 px-6 py-12">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
           <Route path="about" element={<About />} />
           <Route path="login" element={<Login />} />
+          <Route path="register" element={<Register />} />
           <Route path="*" element={<NotFound />} /> {/* shows when an invalid route is typed in the url */}
         </Routes>
       </main>

@@ -8,6 +8,11 @@ export default defineConfig({
   server: {
     host: true, // listen on 0.0.0.0 so you can reach it from outside the container
     port: 9000,
+    proxy: {
+      '/api': {
+        target: process.env.API_PROXY_TARGET || 'http://localhost:3000',
+      },
+    },
     watch: {
       usePolling: true, // sets up watch so the container shows updates in real time
     }
