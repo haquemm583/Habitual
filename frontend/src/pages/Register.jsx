@@ -62,8 +62,8 @@ function Register() {
           </div>
           <div>
             <label htmlFor="password" className="mb-2 block font-medium text-stone-900">Password:</label>
-            <input id="password" name="password" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={15} maxLength={128} aria-describedby="password-help" className={inputClass} />
-            <p id="password-help" className="mt-2 text-sm text-stone-600">Use 15 to 128 characters.</p>
+            <input id="password" name="password" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} maxLength={128} aria-describedby="password-help" className={inputClass} />
+            <p id="password-help" className="mt-2 text-sm text-stone-600">Use 8 to 128 characters.</p>
           </div>
           <button type="submit" className="min-h-16 w-full cursor-pointer rounded-md border border-stone-200 bg-white px-4 py-3 font-medium text-stone-900 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-800 disabled:cursor-wait disabled:opacity-60">
             {submitting ? 'Creating account...' : 'Create account'}

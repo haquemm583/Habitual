@@ -1,3 +1,9 @@
+/*
+  auth.js
+
+  Last modified by: Maaz Haque
+  Last modified on: 11/14/2026
+*/
 import { Router } from 'express';
 import argon2 from 'argon2';
 import pool from '../db.js';
@@ -30,8 +36,9 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'Enter a valid email address.' });
   }
 
-  if (typeof password !== 'string' || password.length < 15 || password.length > 128) {
-    return res.status(400).json({ error: 'Password must contain 15 to 128 characters.' });
+  // Match the registration form's password limits.
+  if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
+    return res.status(400).json({ error: 'Password must contain 8 to 128 characters.' });
   }
 
   try {
