@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Local browser verification artifacts
+/.playwright-cli/
+/output/playwright/
+
 # Local environment variables
 .env
 .env.*
