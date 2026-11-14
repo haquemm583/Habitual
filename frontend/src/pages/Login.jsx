@@ -13,6 +13,8 @@
 
   Update: The form now authenticates through the backend session API.
 
+  Last modified by: Maaz Haque
+  Last modified on: 11/14/2026
 */
 
 import { useState } from 'react';
@@ -56,13 +58,19 @@ function Login() {
 
   return (
     <div className="page login-page">
-      <h1 className="my-[0.83em] text-2xl font-bold">Login Page</h1>
-      {location.state?.registered && <p role="status" className="text-green-800">Account created. Log in to continue.</p>}
-      {error && <p role="alert" className="text-red-700">{error}</p>}
+      {/* Keep the requested destination when switching forms. */}
+      <nav aria-label="Account access" className="mb-6 grid grid-cols-2 rounded-lg bg-hover p-1">
+        <span aria-current="page" className="rounded-md bg-surface px-3 py-2 text-center text-sm font-semibold text-foreground shadow-sm">Log in</span>
+        <Link to="/register" state={{ from: location.state?.from }} className="rounded-md px-3 py-2 text-center text-sm font-medium text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-focus">Sign up</Link>
+      </nav>
+      <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
+      <p className="mt-2 mb-6 text-sm text-muted">Sign in to your Habitual account.</p>
+      {location.state?.registered && <p role="status" className="text-muted">Account created. Log in to continue.</p>}
+      {error && <p role="alert" className="text-danger">{error}</p>}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
-          <label htmlFor="email" className="mb-2 block font-medium text-stone-900">Email:</label>
+          <label htmlFor="email" className="mb-2 block font-medium text-foreground">Email:</label>
           <input
             id="email"
             type="email"
@@ -70,12 +78,12 @@ function Login() {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
-            className="min-h-16 w-full rounded-md border border-stone-200 bg-white px-4 py-3 text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-800"
+            className="min-h-16 w-full rounded-md transition-colors duration-150 motion-reduce:transition-none border border-field-border bg-surface px-4 py-3 text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="mb-2 block font-medium text-stone-900">Password:</label>
+          <label htmlFor="password" className="mb-2 block font-medium text-foreground">Password:</label>
           <input
             id="password"
             type="password"
@@ -83,18 +91,14 @@ function Login() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
-            className="min-h-16 w-full rounded-md border border-stone-200 bg-white px-4 py-3 text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-800"
+            className="min-h-16 w-full rounded-md transition-colors duration-150 motion-reduce:transition-none border border-field-border bg-surface px-4 py-3 text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
           />
         </div>
 
         <button type="submit" disabled={submitting}
-        className="min-h-16 w-full cursor-pointer rounded-md border border-stone-200 bg-white px-4 py-3 font-medium text-stone-900 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-800 disabled:cursor-wait disabled:opacity-60"
-        >{submitting ? 'Logging in...' : 'Login'}</button>
+        className="min-h-12 w-full cursor-pointer rounded-md transition-colors duration-150 motion-reduce:transition-none bg-primary px-4 py-3 font-medium text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-60"
+        >{submitting ? 'Signing in...' : 'Sign in'}</button>
       </form>
-      <p className="mt-4">
-        New to Habitual?{' '}
-        <Link to="/register" state={{ from: location.state?.from }} className="text-green-800 underline focus-visible:outline-2 focus-visible:outline-offset-4">Create account</Link>
-      </p>
     </div>
   );
 }
