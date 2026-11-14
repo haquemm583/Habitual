@@ -1,1 +1,104 @@
+/*
+  index.css
+
+  Last modified by: Maaz Haque
+  Last modified on: 11/14/2026
+*/
 @import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Crossfade the theme as one image, including backgrounds, text, and branding. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 300ms;
+  animation-timing-function: ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
+/* Shared colors and motion utilities. */
+@theme {
+  --color-moss: #51614b;
+  --color-olive: #6f8964;
+  --color-sage: #97a590;
+  --color-pine: #202c1a;
+  --color-mint: #55b177;
+  --color-canvas: #e5e9e2;
+  --color-surface: #ffffff;
+  --color-foreground: #202c1a;
+  --color-muted: #51614b;
+  --color-stroke: #97a590;
+  --color-field-border: #6f8964;
+  --color-primary: #51614b;
+  --color-primary-hover: #202c1a;
+  --color-on-primary: #ffffff;
+  --color-accent: #55b177;
+  --color-on-accent: #202c1a;
+  --color-focus: #51614b;
+  --color-hover: #e4e8e1;
+  --color-danger: #b91c1c;
+  --color-tooltip: #202c1a;
+  --color-on-tooltip: #ffffff;
+  --ease-fluid: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-page-enter: page-enter 200ms var(--ease-fluid) both;
+  --animate-tooltip-enter: tooltip-enter 120ms ease-out both;
+  --animate-drawer-enter: drawer-enter 220ms var(--ease-fluid) both;
+  --animate-backdrop-enter: tooltip-enter 180ms ease-out both;
+  --animate-habit-float: habit-float 8s ease-in-out infinite;
+
+  @keyframes habit-float {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -10px; }
+  }
+
+  @keyframes page-enter {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes tooltip-enter {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes drawer-enter {
+    from { opacity: 0; transform: translateX(-16px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  /* Override shared colors for dark mode. */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --color-canvas: #151c14;
+    --color-surface: #20291e;
+    --color-foreground: #edf2e8;
+    --color-muted: #b4c2ab;
+    --color-stroke: #4d6045;
+    --color-field-border: #708365;
+    --color-primary: #a7c795;
+    --color-primary-hover: #bdd6af;
+    --color-on-primary: #172214;
+    --color-on-accent: #13200f;
+    --color-focus: #a7c795;
+    --color-hover: #303e2b;
+    --color-danger: #fca5a5;
+    --color-tooltip: #edf2e8;
+    --color-on-tooltip: #182215;
+  }
+
+  body {
+    @apply bg-canvas text-foreground;
+  }
+}

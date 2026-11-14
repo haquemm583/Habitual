@@ -1,3 +1,9 @@
+/*
+  RequireAuth.jsx
+
+  Last modified by: Maaz Haque
+  Last modified on: 11/14/2026
+*/
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 
@@ -10,7 +16,7 @@ function RequireAuth({ children }) {
     return (
       <div>
         <p role="alert">{error}</p>
-        <button type="button" onClick={() => checkSession()} className="mt-4 rounded-md border border-stone-300 px-4 py-2 focus-visible:outline-2 focus-visible:outline-offset-2">
+        <button type="button" onClick={() => checkSession()} className="mt-4 rounded-md border border-field-border px-4 py-2 focus-visible:outline-2 focus-visible:outline-offset-2">
           Try again
         </button>
       </div>

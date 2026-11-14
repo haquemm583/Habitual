@@ -8,6 +8,9 @@
 
   Created by: CJ Quintero
   Created on: 10/24/2026
+
+  Last modified by: Maaz Haque
+  Last modified on: 11/14/2026
 */
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -15,13 +18,17 @@ import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App.jsx';
 import AuthProvider from './components/auth/AuthProvider';
+import ThemeProvider from './components/theme/ThemeProvider';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      {/* Share the selected theme across all routes. */}
+      <ThemeProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </StrictMode>
 );
