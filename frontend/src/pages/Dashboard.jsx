@@ -5,8 +5,12 @@
 
   Created by: CJ Quintero
   Created on: 10/24/2026
+
+  Last modified by: Maaz Haque
+  Last modified on: 11/14/2026
 */
 import { useState, useEffect } from 'react';
+import TaskList from '../components/TaskList';
 
 function Dashboard() {
 
@@ -33,10 +37,11 @@ function Dashboard() {
   }, []); // empty array - run once when the page loads
 
 
+  // Flip completion for the selected task.
   function toggleTask(taskID) {
     setTasks((currentTasks) => 
       currentTasks.map((task) =>
-        task.id === taskID ? {...task, completed:task.completed} : task
+        task.id === taskID ? {...task, completed: !task.completed} : task
       )
     );
   }
@@ -53,11 +58,18 @@ function Dashboard() {
   if (networkError) {
     return (
       <div className="network-error">
-        The data request failed for reason: {networkError}. Please try refreshing the page
-        or contact the developers if the issue persists.
+        <p role="alert">Unable to load your tasks. Please refresh the page to try again.</p>
+        <details className="mt-4 rounded-md border border-stroke bg-surface p-4">
+          <summary className="cursor-pointer rounded-sm font-medium text-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus">Technical details</summary>
+          <p className="mt-3 break-words text-sm text-muted">{networkError}</p>
+        </details>
       </div>
     );
   }
+
+  // Derive both groups from the same task state.
+  const activeTasks = tasks.filter((task) => !task.completed);
+  const completedTasks = tasks.filter((task) => task.completed);
 
   // successful data fetch
   return (
@@ -65,30 +77,23 @@ function Dashboard() {
       <h2 className="my-[0.83em] text-2xl font-bold">Dashboard Page</h2>
 
       {/* TODO: remove this when we develop the project more */}
-      <ul className="mt-6 space-y-1">
-        {tasks.map((task) => (
-          <li key={task.id}>
-            <label className="flex min-h-16 cursor-pointer items-center gap-4 rounded-md border border-stone-200 bg-white px-4 py-3 hover:bg-stone-50">
-              <input
-                type="checkbox"
-                checked={task.completed}
-                onChange={() => toggleTask(task.id)}
-                className="size-5 shrink-0 cursor-pointer accent-green-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-800"
-              />
-
-              <span
-                className={`min-w-0 break-words ${
-                  task.completed
-                    ? 'text-stone-500 line-through'
-                    : 'text-stone-900'
-                }`}
-              >
-                {task.name}
-              </span>
-            </label>
-          </li>
-        ))}
-      </ul>
+      <section aria-labelledby="active-tasks" className="mt-6">
+        <h3 id="active-tasks" className="mb-3 font-semibold">Active tasks ({activeTasks.length})</h3>
+        <TaskList tasks={activeTasks} onToggle={toggleTask} />
+        {activeTasks.length === 0 && <p className="text-muted">No active tasks.</p>}
+      </section>
+      {completedTasks.length > 0 && (
+        <details className="mt-6 rounded-md border border-stroke bg-surface p-4">
+          <summary className="cursor-pointer rounded-sm font-medium text-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus">
+            Completed tasks ({completedTasks.length})
+          </summary>
+          <div className="mt-4">
+            <TaskList tasks={completedTasks} onToggle={toggleTask} />
+          </div>
+        </details>
+      )}
+      {/* Announce updated counts without moving focus. */}
+      <p role="status" className="sr-only">{activeTasks.length} active tasks. {completedTasks.length} completed tasks.</p>
     </div>
   );
 }
