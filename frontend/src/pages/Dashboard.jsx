@@ -119,6 +119,7 @@ function Dashboard() {
   }
 
   function startEditing(task) {
+    if (busyTaskIds.includes(editingId)) return;
     setEditingId(task.id);
     setEditingName(task.name);
     setActionError('');
@@ -254,7 +255,7 @@ function Dashboard() {
                     <button
                       type="button"
                       onClick={() => startEditing(task)}
-                      disabled={isBusy}
+                      disabled={isBusy || busyTaskIds.includes(editingId)}
                       aria-label={`Edit ${task.name}`}
                       className="cursor-pointer rounded-md border border-stone-200 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-800 disabled:opacity-60"
                     >
