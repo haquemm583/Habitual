@@ -37,6 +37,7 @@ CREATE TABLE habits (
     user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     milestone_id  INTEGER,
     name          TEXT NOT NULL,
+    completed     BOOLEAN NOT NULL DEFAULT FALSE,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     -- the milestone must belong to the same user as the habit
