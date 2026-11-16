@@ -19,8 +19,9 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:9000}
     volumes:
-      - ./backend:/app    # so the container sees live edits to backend files
-      - /app/node_modules # keep the linux node modules
+      - ./backend:/app      # so the container sees live edits to backend files
+      - /app/node_modules   # keep the linux node modules
+      - ./tests:/app/tests  # so the container sees live edits to test files and can run them
     depends_on:
       - db
     command: npm run dev  # override the Dockerfile's CMD for local dev
