@@ -4,7 +4,7 @@ A habit and task tracker built with React and Vite for our Internet Programming 
 
 ## Getting started
 
-Use Docker Desktop with its Linux engine running. Copy `.env.example` to `.env`, fill in the PostgreSQL credentials, and set `SESSION_SECRET` to a private random value of at least 32 characters. Keep `.env` out of Git.
+Use Docker Desktop with its Linux engine running. Copy `.env.example` to `.env` and fill it in (see [Environment variables](#environment-variables)).
 
 ```sh
 git clone https://github.com/haquemm583/Habitual.git
@@ -12,7 +12,7 @@ cd Habitual
 docker compose up --build -d
 ```
 
-Open http://localhost:9000. Source changes appear automatically. The backend health check is http://localhost:3000/api/health. See [using_docker.md](using_docker.md) for container commands.
+Open http://localhost:9000. Source changes appear automatically. The backend health check is http://localhost:3000/api/health. See [Docker commands](#docker-commands) for container commands.
 
 Vite proxies `/api` to `http://backend:3000` inside Docker. The production host must also route `/api` to the backend; Vite's development proxy is not part of the production build.
 
@@ -57,7 +57,7 @@ Run these from the project root. The `exec` and `logs` commands need the contain
 backend/src/      Express routes, database pool, and session configuration
 db/init/          PostgreSQL initialization scripts
 frontend/
-  public/         Static files, including mock/tasks.json
+  public/         Static files, such as the favicon and branding images
   src/
     auth/         Shared auth context and API requests
     components/   Reusable components, including auth provider and route guard
@@ -97,11 +97,11 @@ Task responses contain `id`, `name`, `completed`, `milestoneId`, and `createdAt`
 
 The backend provides `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`, and `POST /api/auth/logout`. Open `/register` or follow the Create account link on Login to register with a name, email, and password of 8 to 128 characters. Passwords are hashed with Argon2id. Registration returns to Login with a success message and the account email filled in. Sign in to start a session. Invalid fields and duplicate email addresses display errors; authenticated visitors to `/register` return to Dashboard.
 
-Sessions are stored in PostgreSQL; the session table is created automatically. The browser receives an HTTP-only cookie that expires after 24 hours. `NODE_ENV=production` requires HTTPS for this cookie. `FRONTEND_ORIGIN` defaults to `http://localhost:9000` and controls which frontend origin may submit authentication requests.
+Sessions are stored in PostgreSQL; the session table is created automatically. The browser receives an HTTP-only cookie that expires after 24 hours. `NODE_ENV=production` requires HTTPS for this cookie. `FRONTEND_ORIGIN` defaults to `http://localhost:9000` and controls which frontend origin may submit authentication and task requests.
 
-React checks the current session when the app starts. Logged-out Dashboard visits redirect to Login, and successful login returns to Dashboard. Logout removes the server session and updates navigation. Session-check failures display an error and retry control instead of rendering Dashboard. The public landing page includes a headline, account links, an introductory checklist, and team credit in the footer. Signed-in visitors to Home go directly to Dashboard. Dashboard still displays shared mock tasks; per-user task storage is not implemented.
+React checks the current session when the app starts. Logged-out Dashboard visits redirect to Login, and successful login returns to Dashboard. Logout removes the server session and updates navigation. Session-check failures display an error and retry control instead of rendering Dashboard. The public landing page includes a headline, account links, an introductory checklist, and team credit in the footer. Signed-in visitors to Home go directly to Dashboard. Each user's tasks are stored in PostgreSQL and loaded through the tasks API.
 
-Dashboard shows active tasks first and keeps completed tasks in a collapsed section with a count. Expand it to review tasks or uncheck an item to make it active again. Completion changes reset when Dashboard unmounts or the page reloads. Technical task-loading error details expand on demand. Required registration fields and password guidance remain visible.
+Dashboard shows active tasks first and keeps completed tasks in a collapsed section with a count. Expand it to review tasks or uncheck an item to make it active again. Creating, renaming, completing, and deleting tasks are saved to the database, so changes persist across reloads. Technical task-loading error details expand on demand. Required registration fields and password guidance remain visible.
 
 ### Manual verification
 
@@ -112,9 +112,10 @@ Dashboard shows active tasks first and keeps completed tasks in a collapsed sect
 5. Use Logout, then revisit `/dashboard` and verify login is required again.
 6. Check navigation and both authentication forms at a narrow mobile width.
    Verify that Menu opens the navigation drawer, links close it, and Escape returns focus to Menu. On desktop, verify that the sidebar remains beside the page content.
-7. Complete a Dashboard task, expand Completed tasks, and uncheck it to restore it. Check the empty state after completing all tasks.
-8. Visit Home while logged out and verify the introductory checklist, footer team credit, and account links. If task loading fails, verify that the error stays visible while Technical details starts collapsed.
-9. Toggle Dark mode with the mouse and keyboard. Navigate between app and authentication pages, then reload to verify that the preference persists. Check task rows, inputs, landing page, and sidebar labels in both themes at desktop and mobile widths.
+7. Create a task, rename it, mark it complete, and delete it, reloading the page after each step to verify the change persists. Sign in as a different account and verify the first account's tasks are not shown.
+8. Complete a Dashboard task, expand Completed tasks, and uncheck it to restore it. Check the empty state after completing all tasks.
+9. Visit Home while logged out and verify the introductory checklist, footer team credit, and account links. If task loading fails, verify that the error stays visible while Technical details starts collapsed.
+10. Toggle Dark mode with the mouse and keyboard. Navigate between app and authentication pages, then reload to verify that the preference persists. Check task rows, inputs, landing page, and sidebar labels in both themes at desktop and mobile widths.
 
 ## Working together
 
