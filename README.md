@@ -14,16 +14,22 @@ docker compose up --build -d
 
 Open http://localhost:9000. Source changes appear automatically. The backend health check is http://localhost:3000/api/health. See [using_docker.md](using_docker.md) for container commands.
 
-For frontend development outside Docker, run `npm install` and `npm run dev` from `frontend/` with Node.js 22.12 or newer. Keep the backend and database running. Vite proxies `/api` to `http://localhost:3000` locally and `http://backend:3000` inside Docker. The production host must also route `/api` to the backend; Vite's development proxy is not part of the production build.
+Vite proxies `/api` to `http://backend:3000` inside Docker. The production host must also route `/api` to the backend; Vite's development proxy is not part of the production build.
 
-## Frontend commands
+## Docker commands
 
-Run these from `frontend/`:
+Run these from the project root. The `exec` and `logs` commands need the containers to be running.
 
-- `npm run dev`: start the development server.
-- `npm run build`: build the app into `dist/`.
-- `npm run preview`: preview the production build locally after building.
-- `npm run lint`: check source code with Oxlint.
+| Command | Description |
+| --- | --- |
+| `docker compose up --build -d` | Build and start the frontend, backend, and database containers. The frontend and backend dev servers start automatically. |
+| `docker compose up --build -d -V` | Rebuild after adding packages. `-V` recreates the `node_modules` volumes and keeps the database. |
+| `docker compose exec frontend npm run lint` | Check frontend source code with Oxlint. |
+| `docker compose exec frontend npm run build` | Build the frontend into `frontend/dist/`. |
+| `docker compose logs -f frontend` | Follow frontend container logs. |
+| `docker compose logs -f backend` | Follow backend container logs. |
+| `docker compose down` | Stop and remove the containers. The database volume is kept. |
+| `docker compose down --volumes` | Stop and remove the containers and volumes, deleting all database data. |
 
 ## Project structure
 
@@ -82,4 +88,4 @@ git pull
 git switch -c feature/your-task
 ```
 
-Commit `package-lock.json` when dependencies change. Do not commit `node_modules/`, `dist/`, or local `.env` files. Run `npm run lint` and `npm run build` before opening a pull request.
+Commit `package-lock.json` when dependencies change. Do not commit `node_modules/`, `dist/`, or local `.env` files. Run `docker compose exec frontend npm run lint` and `docker compose exec frontend npm run build` before opening a pull request.
