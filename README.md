@@ -75,6 +75,24 @@ Motion stays brief: pages enter with a subtle fade and 6px movement, the sidebar
 
 Dark mode is available at the bottom of the sidebar, in the mobile navigation drawer, and above the sign-in and registration forms. The toggle exposes its state to assistive technology and supports keyboard activation. On the first visit, the theme uses the device preference. Choosing a theme saves `habitual-theme` in local storage and applies it before React loads on later visits. The toggle still works for the current visit if browser storage is unavailable.
 
+## API endpoints
+
+The backend runs at http://localhost:3000, and the frontend reaches it through the `/api` proxy. Request bodies are JSON and limited to 16 KB. Endpoints that require authentication need the session cookie set by `POST /api/auth/login` and return `401` without it. Non-GET requests from an origin other than `FRONTEND_ORIGIN` or `http://localhost:3000` return `403`.
+
+| Method | Endpoint | Auth required | Description | Example request body | Expected status |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/api/health` | No | Check that the backend is running and can reach the database. | None | `200` ok, `503` database unavailable |
+| `POST` | `/api/auth/register` | No | Create an account. Name must be 1 to 100 characters and password 8 to 128 characters. Returns the new user's `id`, `name`, and `email`. | `{"name": "Alex", "email": "alex@example.com", "password": "password123"}` | `201` created, `400` invalid fields, `409` email already exists |
+| `POST` | `/api/auth/login` | No | Sign in and start a session. Returns the user's `id`, `name`, and `email` and sets the session cookie. | `{"email": "alex@example.com", "password": "password123"}` | `200` ok, `400` missing fields, `401` wrong email or password |
+| `GET` | `/api/auth/me` | Yes | Get the signed-in user's `id`, `name`, and `email`. | None | `200` ok, `401` not signed in |
+| `POST` | `/api/auth/logout` | No | End the current session. Deletes the session from the database and clears the session cookie. | None | `204` no content |
+| `GET` | `/api/tasks` | Yes | List the signed-in user's tasks, oldest first. | None | `200` ok |
+| `POST` | `/api/tasks` | Yes | Create a task. Name must be 1 to 200 characters; `completed` is optional and defaults to `false`. | `{"name": "Drink water", "completed": false}` | `201` created, `400` invalid fields |
+| `PATCH` | `/api/tasks/:id` | Yes | Update a task's name, completed status, or both. `PUT` works the same way. | `{"completed": true}` | `200` ok, `400` invalid ID or fields, `404` task not found |
+| `DELETE` | `/api/tasks/:id` | Yes | Delete a task. | None | `204` no content, `400` invalid ID, `404` task not found |
+
+Task responses contain `id`, `name`, `completed`, `milestoneId`, and `createdAt`. Unexpected server errors return `500`.
+
 ## Authentication
 
 The backend provides `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`, and `POST /api/auth/logout`. Open `/register` or follow the Create account link on Login to register with a name, email, and password of 8 to 128 characters. Passwords are hashed with Argon2id. Registration returns to Login with a success message and the account email filled in. Sign in to start a session. Invalid fields and duplicate email addresses display errors; authenticated visitors to `/register` return to Dashboard.
