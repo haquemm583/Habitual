@@ -16,6 +16,26 @@ Open http://localhost:9000. Source changes appear automatically. The backend hea
 
 Vite proxies `/api` to `http://backend:3000` inside Docker. The production host must also route `/api` to the backend; Vite's development proxy is not part of the production build.
 
+## Environment variables
+
+Copy `.env.example` to `.env` and fill in these variables. Never commit `.env` or share its sensitive values.
+
+| Variable | Description | Example | Modifiable | Sensitive |
+| --- | --- | --- | --- | --- |
+| `POSTGRES_USER` | Username for the PostgreSQL database. Postgres creates this user when the database volume is first created. | `habitual` | Yes, but changes only take effect after `docker compose down --volumes`, which deletes all data. | Yes |
+| `POSTGRES_PASSWORD` | Password for the PostgreSQL user. Postgres sets it when the database volume is first created. | `change-me-to-a-strong-password` | Yes, but changes only take effect after `docker compose down --volumes`, which deletes all data. | Yes |
+| `DATABASE_URL` | Connection string the backend uses to reach the database. Built from `POSTGRES_USER` and `POSTGRES_PASSWORD`. | `postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/habitual` | No. Keep the default; the `db` host and `habitual` database name match `compose.yaml`. | Yes, it contains the password |
+| `SESSION_SECRET` | Secret used to sign session cookies. Must be a random value of at least 32 characters, or the backend will not start. | Output of the command below | Yes. Changing it signs out every user. | Yes |
+| `FRONTEND_ORIGIN` | Frontend origin allowed to send authentication and task requests. Defaults to `http://localhost:9000`. | `http://localhost:9000` | Yes, if the frontend is served from a different URL. | No |
+
+Generate a `SESSION_SECRET` with this command, then paste the output into `.env`. It only needs Docker and works in PowerShell, Command Prompt, and macOS or Linux terminals:
+
+```sh
+docker run --rm node:26 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+It prints a 64-character random hex string. Each person should generate their own secret.
+
 ## Docker commands
 
 Run these from the project root. The `exec` and `logs` commands need the containers to be running.
