@@ -85,12 +85,12 @@ The backend runs at http://localhost:3000, and the frontend reaches it through t
 | Method | Endpoint | Auth required | Description | Example request body | Expected status |
 | --- | --- | --- | --- | --- | --- |
 | `GET` | `/api/health` | No | Check that the backend is running and can reach the database. | None | `200` ok, `503` database unavailable |
-| `POST` | `/api/auth/register` | No | Create an account. Name must be 1 to 100 characters and password 8 to 128 characters. Returns the new user's `id`, `name`, and `email`. | `{"name": "Alex", "email": "alex@example.com", "password": "password123"}` | `201` created, `400` invalid fields, `409` email already exists |
-| `POST` | `/api/auth/login` | No | Sign in and start a session. Returns the user's `id`, `name`, and `email` and sets the session cookie. | `{"email": "alex@example.com", "password": "password123"}` | `200` ok, `400` missing fields, `401` wrong email or password |
+| `POST` | `/api/auth/register` | No | Create an account. Name must be 1 to 100 characters and password 8 to 128 characters. Returns the new user's `id`, `name`, and `email`. | `{"name": "Test User", "email": "test@example.com", "password": "Test-password-123!"}` | `201` created, `400` invalid fields, `409` email already exists |
+| `POST` | `/api/auth/login` | No | Sign in and start a session. Returns the user's `id`, `name`, and `email` and sets the session cookie. | `{"email": "test@example.com", "password": "Test-password-123!"}` | `200` ok, `400` missing fields, `401` wrong email or password |
 | `GET` | `/api/auth/me` | Yes | Get the signed-in user's `id`, `name`, and `email`. | None | `200` ok, `401` not signed in |
 | `POST` | `/api/auth/logout` | No | End the current session. Deletes the session from the database and clears the session cookie. | None | `204` no content |
 | `GET` | `/api/tasks` | Yes | List the signed-in user's tasks, oldest first. | None | `200` ok |
-| `POST` | `/api/tasks` | Yes | Create a task. Name must be 1 to 200 characters; `completed` is optional and defaults to `false`. | `{"name": "Drink water", "completed": false}` | `201` created, `400` invalid fields |
+| `POST` | `/api/tasks` | Yes | Create a task. Name must be 1 to 200 characters; `completed` is optional and defaults to `false`. | `{"name": "Drink water"}` | `201` created, `400` invalid fields |
 | `PATCH` | `/api/tasks/:id` | Yes | Update a task's name, completed status, or both. `PUT` works the same way. | `{"completed": true}` | `200` ok, `400` invalid ID or fields, `404` task not found |
 | `DELETE` | `/api/tasks/:id` | Yes | Delete a task. | None | `204` no content, `400` invalid ID, `404` task not found |
 
