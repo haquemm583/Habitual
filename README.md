@@ -46,6 +46,9 @@ Run these from the project root. The `exec` and `logs` commands need the contain
 | `docker compose up --build -d -V` | Rebuild after adding packages. `-V` recreates the `node_modules` volumes and keeps the database. |
 | `docker compose exec frontend npm run lint` | Check frontend source code with Oxlint. |
 | `docker compose exec frontend npm run build` | Build the frontend into `frontend/dist/`. |
+| `docker compose stop frontend` | Stop the frontend dev server so port 9000 is free for a preview. |
+| `docker compose run --rm -p 9000:9000 frontend npm run preview -- --port 9000` | Serve the built `frontend/dist/` at http://localhost:9000 to test the production build. Run the build and stop commands first. Press Ctrl+C to stop; `--rm` removes the temporary container. |
+| `docker compose start frontend` | Restart the frontend dev server after previewing. |
 | `docker compose logs -f frontend` | Follow frontend container logs. |
 | `docker compose logs -f backend` | Follow backend container logs. |
 | `docker compose down` | Stop and remove the containers. The database volume is kept. |
