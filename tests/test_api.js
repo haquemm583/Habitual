@@ -345,3 +345,64 @@ describe("/api/tasks", () => {
         assert.ok(!list.data.some((task) => task.id === taskId), "deleted task is still listed");
     });
 });
+
+describe('/api/milestones', () => {
+    /* testing suite for api/milestones endpoints */
+
+    let cookie
+    let otherCookie
+    let milestoneId
+
+    before(async () => {
+        cookie = await registerAndLogin(testUser)
+        otherCookie = await registerAndLogin(otherUser)
+    })
+
+    test("milestones require login", async () => {
+        /* tests that the milestones endpoints reject requests with no session */
+
+        const res = await request("GET", "/api/milestones");
+
+        assert.equal(res.status, 401);
+        assert.deepEqual(res.data, { error: "Login required." });
+    })
+
+    test('create milestone', async () => {
+        /* tests a milestone can be created properly */
+
+        const res = await request("POST", "/api/milestones", {
+            cookie,
+            body: {
+                name: "test milestone",
+                description: "test milestone description",
+                target_date: '2026-12-01'
+            }
+        })
+
+        // check for expected fields in the response
+        assert.equal(res.status, 201)
+        assert.ok(res.data.id, 'missing id')
+        assert.equal(res.data.name, 'test milestone')
+        assert.equal(res.data.description, 'test milestone description')
+        assert.equal(res.data.target_date, '2026-12-01')
+
+        // save this created milestone for use in other tests
+        milestoneId = res.data.id
+    })
+
+    test('get specific milestone', async () => {
+        /* tests a specific milestone can be fetched by id */
+
+        const expected_name = 'test milestone'
+        const expected_desc = 'test milestone description'
+        const expected_date = '2026-12-01'
+
+        const res = await request('GET', `/api/milestones/${milestoneId}`, { cookie })
+
+        assert.equal(res.status, 200)
+        assert.equal(res.data.id, milestoneId)
+        assert.equal(res.data.name, expected_name)
+        assert.equal(res.data.description, expected_desc)
+        assert.equal(res.data.target_date, expected_date)
+    })
+})
