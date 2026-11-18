@@ -52,15 +52,15 @@ async function request(method, path, { body, cookie, headers: extraHeaders } = {
         body: body ? JSON.stringify(body) : undefined,
     });
 
-    const text = await res.text();
-    const data = text ? JSON.parse(text) : null;
+    const text = await res.text(); // response body may be empty like in a 204
+    const data = text ? JSON.parse(text) : null; // only parse if there is a response body
 
     return { status: res.status, headers: res.headers, data };
 }
 
 function getSessionCookie(headers) {
     /*
-        finds our session cookie in the Set-Cookie headers
+        helper function that finds our session cookie in the Set-Cookie headers
 
         Args:
             headers (object) - the headers object from a request
@@ -68,13 +68,18 @@ function getSessionCookie(headers) {
         Returns:
             str - the cookie as "name=value" so it can be sent back, or undefined
     */
+    // find the right cookie
     const cookie = headers.getSetCookie().find((c) => c.startsWith(`${COOKIE_NAME}=`));
+
+    // the cookie is written as
+    // habitual.sid=...; Path=/; Expires=...; HttpOnly; SameSite=Lax
+    // so this splits by the semicolons and gets the first one which is the cookie SID
     return cookie?.split(";")[0];
 }
 
 async function registerAndLogin(user) {
     /*
-        registers a user, logs them in, and returns their session cookie
+        helper function that registers a user, logs them in, and returns their session cookie
 
         Args:
             user (object) - the user with name, email, and password
@@ -82,11 +87,17 @@ async function registerAndLogin(user) {
         Returns:
             str - the session cookie as "name=value"
     */
+    // register the user. If already exists, just pass and do nothing
+    // since the next request requires the user to exist
     await request("POST", "/api/auth/register", { body: user });
+
+    // login the user
     const res = await request("POST", "/api/auth/login", {
         body: { email: user.email, password: user.password },
     });
     assert.equal(res.status, 200, "login failed during test setup");
+
+    // get the session cookie for the newly registered and logged in user
     return getSessionCookie(res.headers);
 }
 
