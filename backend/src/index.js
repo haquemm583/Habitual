@@ -10,6 +10,8 @@ import express from 'express'
 import pool from './db.js';
 import authRoutes from './routes/auth.js';
 import taskRoutes from './routes/tasks.js';
+import habitRoutes from './routes/habits.js';
+import { migrateHabits } from './migrate-habits.js';
 import sessionMiddleware from './session.js';
 import { setTimeout as delay } from 'node:timers/promises';
 
@@ -20,6 +22,7 @@ app.use(express.json({ limit: '16kb' }));
 app.use(sessionMiddleware);
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/habits', habitRoutes);
 
 // simple health check
 app.get("/api/health", async (req, res) => {
@@ -43,6 +46,7 @@ app.use((error, req, res, next) => {
 for (let attempt = 1; attempt <= 10; attempt++) {
   try {
     await pool.query('ALTER TABLE habits ADD COLUMN IF NOT EXISTS completed BOOLEAN NOT NULL DEFAULT FALSE');
+    await migrateHabits();
     break;
   } catch (error) {
     if (attempt === 10) {
