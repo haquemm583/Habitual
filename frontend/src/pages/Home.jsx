@@ -5,6 +5,9 @@
 
   Created by: CJ Quintero
   Created on: 10/24/2026
+
+  Modified by: Joseph Duff
+  Modified on: 11/19/2026
 */
 
 import { Link, Navigate } from 'react-router-dom';
@@ -23,7 +26,7 @@ function Home() {
   const { user, loading } = useAuth();
 
   if (loading) return <p role="status" className="p-6 text-muted">Checking your session...</p>;
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to="/user-home" replace />;
 
   return (
     <div className="flex min-h-dvh flex-col bg-canvas text-foreground">
