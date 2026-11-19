@@ -19,6 +19,7 @@ import AppLayout from './components/layout/AppLayout';
 import AuthLayout from './components/layout/AuthLayout';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
+import Habits from './pages/Habits';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -29,6 +30,7 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route element={<AppLayout />}>
         <Route path="dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
+        <Route path="habits" element={<RequireAuth><Habits /></RequireAuth>} />
         <Route path="*" element={<NotFound />} /> {/* shows when an invalid route is typed in the url */}
       </Route>
       {/* Account pages use a separate layout. */}
