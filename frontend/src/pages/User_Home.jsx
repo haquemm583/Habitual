@@ -28,11 +28,14 @@ function UserHome() {
             <p className="mt-4 text-left text-muted">
             Habitual is a habit and task tracker built with React and Vite for our team's
             Internet Programming project. Create tasks and/or habits, check them off as you
-            complete them, and come back anytime to pick up where you left off.
+            complete them, and come back anytime to pick up where you left off. 
             </p>
             <p className="mt-4 text-left text-muted">
-            Your tasks are saved to your account, so they stay with you across
+            Your habits/tasks/milestone are saved to your account, so they stay with you across
             sessions and are visible only to you.
+            </p>
+            <p className="mt-4 text-left text-muted">
+            Our goal is to help our users break bad habits while keeping track of and maintaining good habits.
             </p>
         </section>
 
