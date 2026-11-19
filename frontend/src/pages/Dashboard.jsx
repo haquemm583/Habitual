@@ -14,6 +14,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { tasksRequest } from '../auth/api';
+import TodayHabits from '../components/habits/TodayHabits';
 
 function Dashboard() {
   const { user } = useAuth();
@@ -326,6 +327,7 @@ function Dashboard() {
         </p>
       )}
 
+      <TodayHabits />
       {/* Create New Task Form */}
       <form onSubmit={handleCreateTask} className="mt-4 flex flex-col gap-3 sm:flex-row">
         <label htmlFor="new-task-input" className="sr-only">
@@ -336,7 +338,7 @@ function Dashboard() {
           type="text"
           value={newTaskName}
           onChange={(event) => setNewTaskName(event.target.value)}
-          placeholder="Add a new task or habit..."
+          placeholder="Add a new task..."
           maxLength={200}
           disabled={creating}
           className="min-h-12 flex-1 rounded-md border border-stone-200 bg-white px-4 py-2 text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-800 disabled:opacity-60"
