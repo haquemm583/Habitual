@@ -120,6 +120,44 @@ Dashboard shows active tasks first and keeps completed tasks in a collapsed sect
 9. Visit Home while logged out and verify the introductory checklist, footer team credit, and account links. If task loading fails, verify that the error stays visible while Technical details starts collapsed.
 10. Toggle Dark mode with the mouse and keyboard. Navigate between app and authentication pages, then reload to verify that the preference persists. Check task rows, inputs, landing page, and sidebar labels in both themes at desktop and mobile widths.
 
+## Habit tracking
+
+Open **Habits** from the sidebar or mobile menu to manage recurring habits. Dashboard shows today's scheduled habits alongside the existing one-time tasks.
+
+- Create a habit with a name, optional description, start date, and daily or selected-weekday schedule. Names support 1–200 characters and descriptions up to 2000. Supported start dates range from 1900 through 9998 and can be past, today, or future. The start date stays fixed after creation.
+- Check off today's habit or open its monthly history to mark or undo an earlier scheduled date. Future dates, dates before the start, and unscheduled dates cannot be checked off. Dates during an archived interval are also unavailable. Earlier scheduled dates count as missed until completed.
+- Editing a schedule changes tomorrow onward, or the start date if later. Historical schedules and check-ins stay intact. The most recent edit replaces pending schedule changes.
+- Current and longest streaks count consecutive scheduled completions. Unscheduled days do not break streaks; unfinished today does not break a streak until tomorrow. Correcting past check-ins recalculates progress.
+- Archive a habit to preserve its history in read-only form. Restore it to resume tracking with a fresh current streak. The longest streak remains available. Same-day restoration preserves today's check-in while starting a new streak period. Permanent deletion requires confirmation and removes the habit's history.
+- Weekly progress starts Monday. Percentages count scheduled dates through today, including unfinished today. Per-habit and overall calendars use the selected month. Overall streak cards show the best current and longest individual streak among active habits. Archived habits are excluded from every overall total, including past dates; archiving can therefore change historical totals.
+- The device timezone determines today. Existing check-ins keep their original calendar dates when the device timezone changes. The page refreshes on focus and every 30 seconds while visible, including across midnight. Reminders are deferred.
+
+Backend startup automatically applies the additive migration in `backend/src/migrations/001_habit_tracking.sql` to both existing and new databases. It creates recurring-habit tables without converting or deleting existing tasks. No database-volume reset is needed.
+
+All habit API endpoints require a session and a `timezone` query parameter, such as `?timezone=America%2FChicago`. An optional `month=2026-11` selects the calendar month; otherwise the server uses the device's current month.
+
+| Method | Endpoint | Body / result |
+| --- | --- | --- |
+| `GET` | `/api/habits` | Today's date, habits with progress/history, and the overall summary. |
+| `POST` | `/api/habits` | `{ "name": "Walk", "description": "", "startDate": "2026-11-19", "weekdays": [1, 2, 3, 4, 5] }`; returns the new ID. Sunday is `0`, Monday is `1`. |
+| `PATCH` | `/api/habits/:id` | Name, description, and/or weekdays. Start-date changes are rejected. |
+| `PUT` | `/api/habits/:id/checkins/:date` | `{ "completed": true }` or `{ "completed": false }`; repeated writes are safe. |
+| `POST` | `/api/habits/:id/archive` | Archive a habit. |
+| `POST` | `/api/habits/:id/restore` | Restore an archived habit. |
+| `DELETE` | `/api/habits/:id` | Permanently delete the habit and its check-ins. |
+
+Creation returns `201`; successful updates return `204`. Invalid fields/context return `400`, missing sessions `401`, rejected browser origins `403`, another account's or missing habit `404`, and attempts to edit an archived habit `409`.
+
+Run habit unit tests locally with `node --test backend/test/habit-progress.test.js`. With Docker running, run all regression checks:
+
+```sh
+docker compose exec backend node --test test/habit-progress.test.js test/habits-api.test.js tests/test_api.js
+```
+
+The habit API tests remove their own test accounts and related data. Existing authentication/task tests retain their test accounts.
+
+Manual checks: create a daily habit starting yesterday; complete yesterday and today and verify streaks and percentages after reload. Change its weekdays and verify today's schedule stays unchanged. Complete/undo a habit on Dashboard. Archive it and verify overall totals exclude it, then restore it and verify history remains. Cancel and confirm permanent deletion. Repeat on mobile and in dark mode, and verify regular tasks still work.
+
 ## Working together
 
 Pull the latest main before starting work, create a branch for your task, and open a pull request when ready:
