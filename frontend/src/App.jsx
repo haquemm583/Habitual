@@ -14,11 +14,12 @@
   Last modified by: Maaz Haque
   Last modified on: 11/14/2026
 */
-import { Routes, Route } from 'react-router-dom';
+import { Navigate, Routes, Route } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
 import AuthLayout from './components/layout/AuthLayout';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
+import Tasks from './pages/Tasks';
 import Habits from './pages/Habits';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
@@ -27,9 +28,11 @@ import RequireAuth from './components/auth/RequireAuth';
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route path="welcome" element={<Home />} />
       <Route element={<AppLayout />}>
-        <Route path="dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
+        <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+        <Route path="dashboard" element={<Navigate to="/" replace />} />
+        <Route path="tasks" element={<RequireAuth><Tasks /></RequireAuth>} />
         <Route path="habits" element={<RequireAuth><Habits /></RequireAuth>} />
         <Route path="*" element={<NotFound />} /> {/* shows when an invalid route is typed in the url */}
       </Route>

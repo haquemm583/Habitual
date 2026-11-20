@@ -23,7 +23,7 @@ function Home() {
   const { user, loading } = useAuth();
 
   if (loading) return <p role="status" className="p-6 text-muted">Checking your session...</p>;
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to="/" replace />;
 
   return (
     <div className="flex min-h-dvh flex-col bg-canvas text-foreground">
