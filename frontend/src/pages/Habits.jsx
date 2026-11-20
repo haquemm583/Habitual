@@ -10,12 +10,18 @@ function Habits() {
   const [month, setMonth] = useState(() => deviceToday().slice(0, 7));
   const [editing, setEditing] = useState(null);
   const [formVersion, setFormVersion] = useState(0);
-  const [showArchived, setShowArchived] = useState(false);
   const [notice, setNotice] = useState('');
   const form = useRef(null);
   const { data, loading, loadError, actionError, busy, refresh, run } = useHabits(month);
 
-  function reset() { setEditing(null); setFormVersion((value) => value + 1); }
+  function reset() {
+    setEditing(null); setFormVersion((value) => value + 1);
+    requestAnimationFrame(() => form.current?.querySelector('input')?.focus());
+  }
+
+  function changeMonth(value) {
+    if (/^\d{4}-\d{2}$/.test(value) && value >= '1900-01' && value <= '9998-12') setMonth(value);
+  }
 
   async function save(body) {
     if (await run(editing ? String(editing.id) : '', editing ? 'PATCH' : 'POST', body)) {
@@ -37,48 +43,44 @@ function Habits() {
   const active = data?.habits.filter((habit) => !habit.archived) || [];
   const archived = data?.habits.filter((habit) => habit.archived) || [];
 
-  return <div className="mx-auto max-w-5xl space-y-6">
+  return <div className="mx-auto max-w-3xl space-y-6">
     <div>
       <h2 className="text-2xl font-bold">Habits</h2>
-      <p className="mt-2 text-muted">Build a routine, one scheduled day at a time.</p>
+      <p className="mt-2 text-muted">Small steps, every day.</p>
+      {data && <p className="mt-2 text-sm text-muted">{data.summary.today.completed} of {data.summary.today.scheduled} completed today</p>}
     </div>
     {loading && <p role="status">Loading habits...</p>}
     {loadError && <div className="rounded-md border border-stroke bg-surface p-3"><p role="alert" className="break-words text-danger">Unable to refresh habits. {loadError}</p><button onClick={refresh} className="min-h-11 cursor-pointer rounded-sm underline focus-visible:outline-2 focus-visible:outline-focus">Try again</button></div>}
     {actionError && <p role="alert" className="break-words text-danger">{actionError}</p>}
-    <p role="status" className="text-sm text-muted">{notice}</p>
-    {data && <>
-      <div className="flex flex-wrap items-end gap-3">
-        <div>
-          <label htmlFor="habit-month" className="mb-1 block text-sm font-medium">Calendar month</label>
-          <input id="habit-month" type="month" min="1900-01" max="9998-12" value={month} disabled={busy} onChange={(event) => { if (/^\d{4}-\d{2}$/.test(event.target.value)) setMonth(event.target.value); }} className="min-h-11 max-w-full rounded-md border border-field-border bg-surface px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
-        </div>
-        <p className="text-sm text-muted">Today: {dateLabel(data.today)}. Weeks start Monday.</p>
-      </div>
-      <HabitSummary summary={data.summary} />
-      <details className="rounded-lg border border-stroke bg-surface p-4">
-        <summary className="cursor-pointer font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">Overall calendar for {dateLabel(`${data.month}-01`, { day: undefined })}</summary>
-        <p className="my-3 text-sm text-muted">Completed / scheduled habits each day. Archived habits are excluded from all overall stats.</p>
-        <div className="max-w-md"><HabitCalendar days={data.summary.calendar} name="Overall progress" summary /></div>
-      </details>
-    </>}
+    <p role="status" className={notice ? 'text-sm text-muted' : 'sr-only'}>{notice}</p>
     <div ref={form}>
       <HabitForm key={`${editing?.id || 'new'}-${formVersion}`} habit={editing} busy={busy || !data || Boolean(loadError)} onSave={save} onCancel={reset} />
     </div>
     {data && <>
       <section aria-labelledby="active-habits" className="space-y-4">
-        <h3 id="active-habits" className="text-lg font-semibold">Active habits ({active.length})</h3>
-        {!active.length && <p className="text-muted">No active habits. Create your first routine above.</p>}
-        <div className="grid items-start gap-4 lg:grid-cols-2">
-          {active.map((habit) => <HabitCard key={habit.id} habit={habit} today={data.today} month={data.month} busy={busy || Boolean(loadError)} onRun={act} onEdit={(selected) => {
+        <h3 id="active-habits" className="font-semibold">Your habits ({active.length})</h3>
+        {!active.length && <p className="text-sm text-muted">Add your first habit above. Start with something small.</p>}
+        <div className="space-y-2">
+          {active.map((habit) => <HabitCard key={habit.id} habit={habit} today={data.today} month={data.month} busy={busy || Boolean(loadError)} onRun={act} onMonthChange={changeMonth} onEdit={(selected) => {
             setEditing(selected); setNotice(''); form.current?.scrollIntoView({ block: 'start' });
             requestAnimationFrame(() => form.current?.querySelector('input')?.focus());
           }} />)}
         </div>
       </section>
-      <section aria-label="Archived habits" className="space-y-4">
-        <label className="flex min-h-11 cursor-pointer items-center gap-2"><input type="checkbox" checked={showArchived} onChange={(event) => setShowArchived(event.target.checked)} className="size-5 accent-primary" />Show archived habits ({archived.length})</label>
-        {showArchived && (archived.length ? <div className="grid items-start gap-4 lg:grid-cols-2">{archived.map((habit) => <HabitCard key={habit.id} habit={habit} today={data.today} month={data.month} busy={busy || Boolean(loadError)} onRun={act} />)}</div> : <p className="text-muted">No archived habits.</p>)}
-      </section>
+      <details className="rounded-lg border border-stroke p-4">
+        <summary className="min-h-11 cursor-pointer rounded-sm py-2 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">Progress</summary>
+        <div className="mt-3 space-y-4">
+          <label htmlFor="habit-month" className="block text-sm font-medium">Calendar month</label>
+          <input id="habit-month" type="month" min="1900-01" max="9998-12" value={month} disabled={busy} onChange={(event) => changeMonth(event.target.value)} className="min-h-11 max-w-full rounded-md border border-field-border bg-surface px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
+          <HabitSummary summary={data.summary} />
+          <p className="text-sm text-muted">{dateLabel(`${data.month}-01`, { day: undefined })}. Weeks start Monday. Archived habits are excluded.</p>
+          <div className="max-w-md"><HabitCalendar days={data.summary.calendar} name="Overall progress" summary /></div>
+        </div>
+      </details>
+      {archived.length > 0 && <details className="rounded-lg border border-stroke p-4">
+        <summary className="min-h-11 cursor-pointer rounded-sm py-2 text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">Archived habits ({archived.length})</summary>
+        <div className="mt-3 space-y-2">{archived.map((habit) => <HabitCard key={habit.id} habit={habit} today={data.today} month={data.month} busy={busy || Boolean(loadError)} onRun={act} onMonthChange={changeMonth} />)}</div>
+      </details>}
     </>}
   </div>;
 }
