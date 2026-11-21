@@ -13,12 +13,16 @@
 
   Last modified by: Maaz Haque
   Last modified on: 11/14/2026
+
+  Last modified by: Joseph Duff
+  Last modified on: 11/20/2026
 */
 import { Routes, Route } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
 import AuthLayout from './components/layout/AuthLayout';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
+import Milestones from './pages/Milestones';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -29,6 +33,7 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route element={<AppLayout />}>
         <Route path="dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
+        <Route path="milestones" element={<RequireAuth><Milestones /></RequireAuth>} />
         <Route path="*" element={<NotFound />} /> {/* shows when an invalid route is typed in the url */}
       </Route>
       {/* Account pages use a separate layout. */}
