@@ -53,22 +53,21 @@ function percentage(completed, scheduled) {
   return { completed, scheduled, percent: scheduled ? Math.round(completed / scheduled * 100) : 0 };
 }
 
+function progressForDays(days) {
+  const due = days.filter((day) => day.scheduled && !day.future);
+  return percentage(due.filter((day) => day.completed).length, due.length);
+}
+
 export function habitProgress(habit, today, month) {
   const completedDates = new Set(habit.completions);
   const weekStart = addDays(today, -((weekday(today) + 6) % 7));
+  const calendarDay = (date) => ({
+    date, scheduled: isScheduled(habit, date), completed: completedDates.has(date), future: date > today,
+  });
+  const weekDays = Array.from({ length: 7 }, (_, index) => calendarDay(addDays(weekStart, index)));
+  const calendar = monthDates(month).map(calendarDay);
   let current = 0;
   let longest = 0;
-  let weekScheduled = 0;
-  let weekCompleted = 0;
-  let monthScheduled = 0;
-  let monthCompleted = 0;
-
-  for (let date = habit.startDate; date <= today; date = addDays(date, 1)) {
-    if (!isScheduled(habit, date)) continue;
-    const completed = completedDates.has(date);
-    if (date >= weekStart) { weekScheduled += 1; if (completed) weekCompleted += 1; }
-    if (date.slice(0, 7) === month) { monthScheduled += 1; if (completed) monthCompleted += 1; }
-  }
 
   // Evaluate periods separately to retain the old longest streak even when
   // archive and restoration share a date. Today's check-in remains one record.
@@ -83,9 +82,6 @@ export function habitProgress(habit, today, month) {
     if (!period.endedOn) current = run;
   }
 
-  const calendar = monthDates(month).map((date) => ({
-    date, scheduled: isScheduled(habit, date), completed: completedDates.has(date), future: date > today,
-  }));
   const schedule = scheduleOn(habit, today) || habit.schedules[0];
   const pending = habit.schedules.find((entry) => entry.effectiveDate > today);
   return {
@@ -94,7 +90,9 @@ export function habitProgress(habit, today, month) {
     pendingSchedule: pending || null,
     today: { scheduled: !habit.archived && isScheduled(habit, today), completed: completedDates.has(today) },
     currentStreak: habit.archived ? 0 : current, longestStreak: longest,
-    week: percentage(weekCompleted, weekScheduled), month: percentage(monthCompleted, monthScheduled), calendar,
+    week: progressForDays(weekDays),
+    weekDays,
+    month: progressForDays(calendar), calendar,
   };
 }
 

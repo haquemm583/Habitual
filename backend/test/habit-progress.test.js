@@ -92,6 +92,22 @@ test('future starts produce no due habits, historical penalties, or streaks', ()
   assert.equal(progress.currentStreak, 0);
 });
 
+test('the weekly strip includes both months and distinguishes a future scheduled day', () => {
+  const habit = fixture({
+    startDate: '2026-08-31',
+    schedules: [{ effectiveDate: '2026-08-31', weekdays: [1, 2, 3, 4, 5] }],
+    periods: [{ id: 1, startedOn: '2026-08-31', endedOn: null }],
+    completions: ['2026-08-31'],
+  });
+  const progress = habitProgress(habit, '2026-09-01', '2026-09');
+  assert.equal(progress.weekDays.length, 7);
+  assert.deepEqual(progress.weekDays[0], { date: '2026-08-31', scheduled: true, completed: true, future: false });
+  assert.deepEqual(progress.weekDays[1], { date: '2026-09-01', scheduled: true, completed: false, future: false });
+  assert.deepEqual(progress.weekDays[2], { date: '2026-09-02', scheduled: true, completed: false, future: true });
+  assert.deepEqual(progress.weekDays[6], { date: '2026-09-06', scheduled: false, completed: false, future: true });
+  assert.deepEqual(progress.week, { completed: 1, scheduled: 2, percent: 50 });
+});
+
 test('overall counts weight scheduled check-ins and omit archived habits including past dates', () => {
   const first = habitProgress(fixture({ completions: ['2026-11-02'] }), '2026-11-03', '2026-11');
   const second = habitProgress(fixture({ id: 2, archived: true, completions: ['2026-11-02', '2026-11-03'] }), '2026-11-03', '2026-11');
