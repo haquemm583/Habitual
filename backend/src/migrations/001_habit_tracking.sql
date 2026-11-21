@@ -1,5 +1,5 @@
 -- Applied on backend startup for both new and existing database volumes.
--- The original habits table continues to hold one-time tasks.
+-- Recurring habits are stored separately from one-time tasks.
 CREATE TABLE IF NOT EXISTS recurring_habits (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -134,7 +134,7 @@ Habit creation starts with a name and **Add habit** (or Enter). New habits defau
 - Weekly progress starts Monday. Percentages count scheduled dates through today, including unfinished today. Per-habit and overall calendars use the selected month. Overall streak cards show the best current and longest individual streak among active habits. Archived habits are excluded from every overall total, including past dates; archiving can therefore change historical totals.
 - The device timezone determines today. Existing check-ins keep their original calendar dates when the device timezone changes. The page refreshes on focus and every 30 seconds while visible, including across midnight. Reminders are deferred.
 
-Backend startup automatically applies the additive migration in `backend/src/migrations/001_habit_tracking.sql` to both existing and new databases. It creates recurring-habit tables without converting or deleting existing tasks. No database-volume reset is needed.
+Backend startup applies the migrations in `backend/src/migrations/` to both existing and new databases. One-time tasks use `tasks` and recurring habits use `recurring_habits`. The startup migration renames the old `habits` task table in place, preserving task IDs, completion status, and milestone links. Existing database volumes can be reused.
 
 All habit API endpoints require a session and a `timezone` query parameter, such as `?timezone=America%2FChicago`. An optional `month=2026-11` selects the calendar month; otherwise the server uses the device's current month.
 

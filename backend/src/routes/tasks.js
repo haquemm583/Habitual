@@ -26,12 +26,12 @@ function parseTaskId(rawId) {
   return id;
 }
 
-// GET /api/tasks - list all tasks (habits) for the logged-in user
+// GET /api/tasks - list all tasks for the logged-in user
 router.get('/', async (req, res, next) => {
   try {
     const result = await pool.query(
       `SELECT id, name, completed, milestone_id AS "milestoneId", created_at AS "createdAt"
-       FROM habits
+       FROM tasks
        WHERE user_id = $1
        ORDER BY created_at ASC, id ASC`,
       [req.session.userId],
@@ -56,7 +56,7 @@ router.post('/', async (req, res, next) => {
 
   try {
     const result = await pool.query(
-      `INSERT INTO habits (user_id, name, completed)
+      `INSERT INTO tasks (user_id, name, completed)
        VALUES ($1, $2, $3)
        RETURNING id, name, completed, milestone_id AS "milestoneId", created_at AS "createdAt"`,
       [req.session.userId, name.trim(), Boolean(completed)],
@@ -105,7 +105,7 @@ async function updateTask(req, res, next) {
     values.push(taskId, req.session.userId);
 
     const result = await pool.query(
-      `UPDATE habits
+      `UPDATE tasks
        SET ${updates.join(', ')}
        WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
        RETURNING id, name, completed, milestone_id AS "milestoneId", created_at AS "createdAt"`,
@@ -134,7 +134,7 @@ router.delete('/:id', async (req, res, next) => {
 
   try {
     const result = await pool.query(
-      'DELETE FROM habits WHERE id = $1 AND user_id = $2',
+      'DELETE FROM tasks WHERE id = $1 AND user_id = $2',
       [taskId, req.session.userId],
     );
 

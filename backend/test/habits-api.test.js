@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import pool from '../src/db.js';
 import { addDays } from '../src/habit-progress.js';
-import { migrateHabits } from '../src/migrate-habits.js';
+import { migrateDatabase } from '../src/migrate-database.js';
 
 const base = process.env.BASE_URL || 'http://localhost:3000';
 
@@ -83,8 +83,8 @@ test('habit tracking API', async (t) => {
       const task = await request('POST', 'tasks', owner, { name: 'One-time task' });
       assert.equal(task.status, 201);
       assert.ok(!(await request('GET', 'habits', owner)).data.habits.some((habit) => habit.name === 'One-time task'));
-      await migrateHabits();
-      await migrateHabits();
+      await migrateDatabase();
+      await migrateDatabase();
       assert.ok((await request('GET', 'tasks', owner)).data.some((item) => item.id === task.data.id));
     });
 
