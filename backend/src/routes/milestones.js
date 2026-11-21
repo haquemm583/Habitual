@@ -1,13 +1,10 @@
 /*
-	milestones.js
+  milestones.js
 
-	This script has the API routes for all milestone endpoints
+  This script has the API routes for all milestone endpoints
 
-	Created by: CJ Quintero
-	Created on: 11/18/2026
-
-	Modified by: Joseph Duff
-	Modified on: 11/20/2026
+  Created by: CJ Quintero
+  Created on: 11/18/2026
 */
 
 import { Router } from 'express'
@@ -25,28 +22,26 @@ const DESCRIPTION_MAX_LENGTH = 2000
   them into JS Dates, which get shifted by the server's timezone when they are
   converted to JSON. as text they always come back as plain YYYY-MM-DD strings.
 */
-
-// const MILESTONE_COLUMNS = `
-//   id,
-//   name,
-//   description,
-//   target_date::text AS "targetDate",
-//   completed_on::text AS "completedOn",
-//   created_at AS "createdAt"
-// `
-
+const MILESTONE_COLUMNS = `
+  id,
+  name,
+  description,
+  target_date::text AS "targetDate",
+  completed_on::text AS "completedOn",
+  created_at AS "createdAt"
+`
 
 function parseMilestoneId(rawId) {
-	/*
-		helper function to extract the milestone id
-	*/
+  /*
+    helper function to extract the milestone id
+  */
 
-  const id = Number(rawId);
+  const id = Number(rawId)
   if (!Number.isInteger(id) || id <= 0) {
-    return null;
+    return null
   }
 
-  return id;
+  return id
 }
 
 function isValidDateString(value) {
@@ -103,125 +98,128 @@ function validateDate(value, label) {
 
 
 router.use((req, res, next) => {
-	/* this middleware checks the request origin and if the user is logged in */
+  /* this middleware checks the request origin and if the user is logged in */
 
-	// tell browser not to cache anything
-  res.set('Cache-Control', 'no-store');
+  // tell browser not to cache anything
+  res.set('Cache-Control', 'no-store')
 
-	/*
-		block the origin if it is not a GET request, and contains an Origin header, 
-		and isn't in the allowedOrigins list.
-	*/
-  const allowedOrigins = [process.env.FRONTEND_ORIGIN || 'http://localhost:9000', 'http://localhost:3000'];
+  /*
+    block the origin if it is not a GET request, and contains an Origin header,
+    and isn't in the allowedOrigins list.
+  */
+  const allowedOrigins = [process.env.FRONTEND_ORIGIN || 'http://localhost:9000', 'http://localhost:3000']
   if (req.method !== 'GET' && req.get('Origin') && !allowedOrigins.includes(req.get('Origin'))) {
-    return res.status(403).json({ error: 'Request origin is not allowed.' });
+    return res.status(403).json({ error: 'Request origin is not allowed.' })
   }
 
-	// check that the user is logged in by checking for their UID
+  // check that the user is logged in by checking for their UID
   if (!req.session?.userId) {
-    return res.status(401).json({ error: 'Login required.' });
+    return res.status(401).json({ error: 'Login required.' })
   }
 
-  next();
-});
-
-
-router.get('/', async (req, res, next) => {
-	/*
-		gets all milestones for the current user.
-		this orders the milestones by closest deadlines first
-		that haven't been completed, with the milestones with no
-		target date listed last at the bottom
-	*/
-
-	try {
-		const result = await pool.query(
-			`
-			SELECT *
-			FROM milestones
-			WHERE user_id = $1
-			ORDER BY completed_on IS NOT NULL, target_date ASC NULLS LAST, id ASC
-			`,
-			[req.session.userId],
-		)
-		
-		return res.json(result.rows);
-	} catch (error) {
-		next(error);
-	}
+  next()
 })
 
 
+// GET /api/milestones - list all milestones for the logged-in user
+router.get('/', async (req, res, next) => {
+  /*
+    gets all milestones for the current user.
+    this orders the milestones by closest deadlines first
+    that haven't been completed, with the milestones with no
+    target date listed last at the bottom
+  */
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT ${MILESTONE_COLUMNS}
+      FROM milestones
+      WHERE user_id = $1
+      ORDER BY completed_on IS NOT NULL, target_date ASC NULLS LAST, id ASC
+      `,
+      [req.session.userId],
+    )
+
+    return res.json(result.rows)
+  } catch (error) {
+    next(error)
+  }
+})
+
+
+// GET /api/milestones/:id - get one milestone owned by the logged-in user
 router.get('/:id', async (req, res, next) => {
-	/*
-		get specific milestone by id
-	*/
+  /*
+    get specific milestone by id
+  */
 
-	// get the id
-	const milestoneId = parseMilestoneId(req.params.id)
-	if (!milestoneId) {
-		return res.status(400).json({ error: 'Invalid milestone ID.' });
-	}
+  // get the id
+  const milestoneId = parseMilestoneId(req.params.id)
+  if (!milestoneId) {
+    return res.status(400).json({ error: 'Invalid milestone ID.' })
+  }
 
-	try {
-		const result = await pool.query(
-			`
-			SELECT *
-			FROM milestones
-			WHERE id = $1
-			AND user_id = $2
-			`,
-			[milestoneId, req.session.userId]
-		)
+  try {
+    const result = await pool.query(
+      `
+      SELECT ${MILESTONE_COLUMNS}
+      FROM milestones
+      WHERE id = $1
+      AND user_id = $2
+      `,
+      [milestoneId, req.session.userId],
+    )
 
-		if (result.rowCount === 0) {
-			return res.status(404).json({ error: 'Milestone not found.' });
-		}
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Milestone not found.' })
+    }
 
-		return res.json(result.rows[0])
-	} catch (error) {
-		next(error)
-	}
+    return res.json(result.rows[0])
+  } catch (error) {
+    next(error)
+  }
 })
 
 
 // POST /api/milestones - create a milestone for the logged-in user
 router.post('/', async (req, res, next) => {
-	/*
-		creates a new milestone if valid or gives an error
-		on bad input
-	*/
+  /*
+    creates a new milestone if valid or gives an error
+    on bad input
+  */
 
-	const { name, description, target_date } = req.body ?? {};
+  const { name, description, targetDate } = req.body ?? {}
 
-	const error =
-		validateName(name) ??
-		validateDescription(description ?? null) ??
-		validateDate(targetDate ?? null, 'Target date')
-	if (error) {
-		return res.status(400).json({ error })
-	}
+  // the name is required. the description and target date are optional
+  const error =
+    validateName(name) ??
+    validateDescription(description ?? null) ??
+    validateDate(targetDate ?? null, 'Target date')
+  if (error) {
+    return res.status(400).json({ error })
+  }
 
-	try {
-		const result = await pool.query(
-			`
-			INSERT INTO milestones
-			(user_id, name, description, target_date)
-			VALUES ($1, $2, $3, $4)
-			RETURNING *
-			`,
-			[
-				req.session.userId,
-				name.trim(),
-				description?.trim() || null,
-				target_date ?? null
-			]
-		)
+  try {
+    const result = await pool.query(
+      `
+      INSERT INTO milestones
+      (user_id, name, description, target_date)
+      VALUES ($1, $2, $3, $4)
+      RETURNING ${MILESTONE_COLUMNS}
+      `,
+      [
+        req.session.userId,
+        name.trim(),
+        description?.trim() || null,
+        targetDate ?? null,
+      ],
+    )
 
-		return res.status(201).json(result.rows[0]);
-	} catch (error) {
-		next(error)
-	}
+    return res.status(201).json(result.rows[0])
+  } catch (error) {
+    next(error)
+  }
 })
 
 
