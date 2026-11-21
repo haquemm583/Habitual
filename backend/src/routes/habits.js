@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import pool from '../db.js';
 import { addDays, habitProgress, isScheduled, localToday, overallProgress, scheduleOn, validDate } from '../habit-progress.js';
+import { sendMilestoneAssignmentError, validMilestoneAssignment } from '../milestone-assignment.js';
 
 const router = Router();
 const habitSelect = `SELECT h.id, h.name, h.description, h.archived, h.start_date::text AS "startDate",
+  h.milestone_id AS "milestoneId",
   COALESCE((SELECT json_agg(json_build_object('effectiveDate', s.effective_date, 'weekdays', s.weekdays)
     ORDER BY s.effective_date) FROM habit_schedules s WHERE s.habit_id = h.id), '[]') AS schedules,
   COALESCE((SELECT json_agg(json_build_object('id', p.id, 'startedOn', p.started_on, 'endedOn', p.ended_on)
@@ -35,6 +37,7 @@ router.use((req, res, next) => {
 });
 
 function fields(body, creating = false) {
+  if (!validMilestoneAssignment(body.milestoneId)) throw new RequestError(400, 'Invalid milestone ID.');
   if (creating || body.name !== undefined) {
     if (typeof body.name !== 'string' || !body.name.trim() || body.name.trim().length > 200) {
       throw new RequestError(400, 'Habit name must contain 1 to 200 characters.');
@@ -69,7 +72,7 @@ async function mutate(req, res, next, action) {
   } catch (error) {
     if (client) await client.query('ROLLBACK');
     if (error instanceof RequestError) res.status(error.status).json({ error: error.message });
-    else next(error);
+    else sendMilestoneAssignmentError(error, res, next);
   } finally { client?.release(); }
 }
 
@@ -90,8 +93,9 @@ router.post('/', async (req, res, next) => {
     client = await pool.connect();
     await client.query('BEGIN');
     const habit = (await client.query(
-      `INSERT INTO recurring_habits (user_id, name, description, start_date) VALUES ($1, $2, $3, $4) RETURNING id`,
-      [req.session.userId, body.name.trim(), body.description?.trim() || '', body.startDate],
+      `INSERT INTO recurring_habits (user_id, name, description, start_date, milestone_id)
+        VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [req.session.userId, body.name.trim(), body.description?.trim() || '', body.startDate, body.milestoneId ?? null],
     )).rows[0];
     await client.query('INSERT INTO habit_schedules (habit_id, effective_date, weekdays) VALUES ($1, $2, $3)', [habit.id, body.startDate, body.weekdays]);
     await client.query('INSERT INTO habit_active_periods (habit_id, started_on) VALUES ($1, $2)', [habit.id, body.startDate]);
@@ -100,7 +104,7 @@ router.post('/', async (req, res, next) => {
   } catch (error) {
     if (client) await client.query('ROLLBACK');
     if (error instanceof RequestError) res.status(error.status).json({ error: error.message });
-    else next(error);
+    else sendMilestoneAssignmentError(error, res, next);
   } finally { client?.release(); }
 });
 
@@ -108,10 +112,15 @@ router.patch('/:id', (req, res, next) => mutate(req, res, next, async (client, h
   if (habit.archived) throw new RequestError(409, 'Restore this habit before editing it.');
   const body = req.body ?? {};
   if (body.startDate !== undefined) throw new RequestError(400, 'The start date cannot be changed.');
-  if (body.name === undefined && body.description === undefined && body.weekdays === undefined) throw new RequestError(400, 'Provide a name, description, or schedule to update.');
+  if ([body.name, body.description, body.weekdays, body.milestoneId].every((value) => value === undefined)) {
+    throw new RequestError(400, 'Provide a name, description, schedule, or milestone to update.');
+  }
   fields(body);
-  await client.query('UPDATE recurring_habits SET name = COALESCE($1, name), description = COALESCE($2, description) WHERE id = $3',
-    [body.name?.trim() ?? null, body.description?.trim() ?? null, habit.id]);
+  await client.query(`UPDATE recurring_habits
+    SET name = COALESCE($1, name), description = COALESCE($2, description),
+        milestone_id = CASE WHEN $3 THEN $4 ELSE milestone_id END
+    WHERE id = $5`,
+  [body.name?.trim() ?? null, body.description?.trim() ?? null, body.milestoneId !== undefined, body.milestoneId ?? null, habit.id]);
   if (body.weekdays !== undefined) {
     const effective = [addDays(req.habitToday, 1), habit.startDate].sort().at(-1);
     const desired = [...body.weekdays].sort().join();

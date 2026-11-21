@@ -90,7 +90,7 @@ export function habitProgress(habit, today, month) {
   const pending = habit.schedules.find((entry) => entry.effectiveDate > today);
   return {
     id: habit.id, name: habit.name, description: habit.description, startDate: habit.startDate,
-    archived: habit.archived, weekdays: schedule.weekdays,
+    archived: habit.archived, milestoneId: habit.milestoneId, weekdays: schedule.weekdays,
     pendingSchedule: pending || null,
     today: { scheduled: !habit.archived && isScheduled(habit, today), completed: completedDates.has(today) },
     currentStreak: habit.archived ? 0 : current, longestStreak: longest,

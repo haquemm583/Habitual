@@ -300,8 +300,8 @@ router.patch('/:id', async (req, res, next) => {
 // DELETE /api/milestones/:id - delete a milestone owned by the logged-in user
 router.delete('/:id', async (req, res, next) => {
   /*
-    deletes a milestone. habits that were in it are kept and just
-    become unassigned (the habits table sets milestone_id to NULL)
+    Deletes a milestone. Linked tasks and recurring habits are kept and
+    become unassigned when their foreign keys set milestone_id to NULL.
   */
 
   const milestoneId = parseMilestoneId(req.params.id)

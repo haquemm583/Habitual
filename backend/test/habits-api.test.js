@@ -43,6 +43,53 @@ test('habit tracking API', async (t) => {
     const daily = [0, 1, 2, 3, 4, 5, 6];
     let id;
 
+    await t.test('milestones own their task and habit links and deletion preserves progress', async () => {
+      const milestone = await request('POST', 'milestones', owner, { name: 'Race day' });
+      assert.equal(milestone.status, 201);
+      const milestoneId = milestone.data.id;
+      const target = await request('POST', 'milestones', owner, { name: 'Next race' });
+      assert.equal(target.status, 201);
+      const habitBody = { name: 'Run', startDate: today, weekdays: daily, milestoneId };
+      const taskBody = { name: 'Register for race', completed: true, milestoneId };
+
+      assert.equal((await request('POST', 'tasks', other, taskBody)).status, 400);
+      assert.equal((await request('POST', 'habits', other, habitBody)).status, 400);
+      const task = await request('POST', 'tasks', owner, taskBody);
+      const habit = await request('POST', 'habits', owner, habitBody);
+      assert.equal(task.status, 201);
+      assert.equal(habit.status, 201);
+      assert.equal(task.data.milestoneId, milestoneId);
+      const taskPath = `tasks/${task.data.id}`;
+      const habitPath = `habits/${habit.data.id}`;
+
+      const newAssignment = { milestoneId: target.data.id };
+      assert.equal((await request('PATCH', taskPath, owner, newAssignment)).data.milestoneId, target.data.id);
+      assert.equal((await request('PATCH', habitPath, owner, newAssignment)).status, 204);
+      const cleared = { milestoneId: null };
+      assert.equal((await request('PATCH', taskPath, owner, cleared)).data.milestoneId, null);
+      assert.equal((await request('PATCH', habitPath, owner, cleared)).status, 204);
+      const assignment = { milestoneId };
+      assert.equal((await request('PATCH', taskPath, owner, assignment)).data.milestoneId, milestoneId);
+      assert.equal((await request('PATCH', habitPath, owner, assignment)).status, 204);
+      assert.equal((await request('PATCH', habitPath, owner, { name: 'Morning run' })).status, 204);
+      assert.equal((await request('PUT', `${habitPath}/checkins/${today}`, owner, { completed: true })).status, 204);
+
+      const linked = (await request('GET', 'habits', owner)).data.habits.find((item) => item.id === habit.data.id);
+      assert.equal(linked.milestoneId, milestoneId);
+      assert.equal(linked.week.completed, 1);
+      assert.equal((await request('GET', `milestones/${milestoneId}`, owner)).data.completedOn, null);
+      assert.equal((await request('DELETE', `milestones/${milestoneId}`, owner)).status, 204);
+
+      const savedTask = (await request('GET', 'tasks', owner)).data.find((item) => item.id === task.data.id);
+      const savedHabit = (await request('GET', 'habits', owner)).data.habits.find((item) => item.id === habit.data.id);
+      assert.equal(savedTask.milestoneId, null);
+      assert.equal(savedTask.completed, true);
+      assert.equal(savedHabit.milestoneId, null);
+      assert.equal(savedHabit.week.completed, 1);
+      assert.equal((await request('DELETE', taskPath, owner)).status, 204);
+      assert.equal((await request('DELETE', habitPath, owner)).status, 204);
+    });
+
     await t.test('all endpoints require login and reject invalid context or browser origins', async () => {
       for (const [method, path, body] of [
         ['GET', 'habits'], ['POST', 'habits', {}], ['PATCH', 'habits/1', {}],

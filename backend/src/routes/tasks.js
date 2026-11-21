@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import pool from '../db.js';
+import { sendMilestoneAssignmentError, validMilestoneAssignment } from '../milestone-assignment.js';
 
 const router = Router();
 
@@ -44,7 +45,7 @@ router.get('/', async (req, res, next) => {
 
 // POST /api/tasks - create a new task for the logged-in user
 router.post('/', async (req, res, next) => {
-  const { name, completed } = req.body ?? {};
+  const { name, completed, milestoneId } = req.body ?? {};
 
   if (typeof name !== 'string' || !name.trim() || name.trim().length > 200) {
     return res.status(400).json({ error: 'Task name must contain 1 to 200 characters.' });
@@ -53,30 +54,33 @@ router.post('/', async (req, res, next) => {
   if (completed !== undefined && typeof completed !== 'boolean') {
     return res.status(400).json({ error: 'Completed status must be a boolean.' });
   }
+  if (!validMilestoneAssignment(milestoneId)) {
+    return res.status(400).json({ error: 'Invalid milestone ID.' });
+  }
 
   try {
     const result = await pool.query(
-      `INSERT INTO tasks (user_id, name, completed)
-       VALUES ($1, $2, $3)
+      `INSERT INTO tasks (user_id, name, completed, milestone_id)
+       VALUES ($1, $2, $3, $4)
        RETURNING id, name, completed, milestone_id AS "milestoneId", created_at AS "createdAt"`,
-      [req.session.userId, name.trim(), Boolean(completed)],
+      [req.session.userId, name.trim(), Boolean(completed), milestoneId ?? null],
     );
     return res.status(201).json(result.rows[0]);
   } catch (error) {
-    next(error);
+    sendMilestoneAssignmentError(error, res, next);
   }
 });
 
-// PATCH /api/tasks/:id - update a task's name and/or completed status for the logged-in user
+// PATCH /api/tasks/:id - update fields on a task owned by the logged-in user
 async function updateTask(req, res, next) {
   const taskId = parseTaskId(req.params.id);
   if (!taskId) {
     return res.status(400).json({ error: 'Invalid task ID.' });
   }
 
-  const { name, completed } = req.body ?? {};
-  if (name === undefined && completed === undefined) {
-    return res.status(400).json({ error: 'Provide a task name or completed status to update.' });
+  const { name, completed, milestoneId } = req.body ?? {};
+  if (name === undefined && completed === undefined && milestoneId === undefined) {
+    return res.status(400).json({ error: 'Provide a task name, completed status, or milestone to update.' });
   }
 
   if (name !== undefined && (typeof name !== 'string' || !name.trim() || name.trim().length > 200)) {
@@ -85,6 +89,9 @@ async function updateTask(req, res, next) {
 
   if (completed !== undefined && typeof completed !== 'boolean') {
     return res.status(400).json({ error: 'Completed status must be a boolean.' });
+  }
+  if (!validMilestoneAssignment(milestoneId)) {
+    return res.status(400).json({ error: 'Invalid milestone ID.' });
   }
 
   try {
@@ -100,6 +107,10 @@ async function updateTask(req, res, next) {
     if (completed !== undefined) {
       updates.push(`completed = $${paramIndex++}`);
       values.push(completed);
+    }
+    if (milestoneId !== undefined) {
+      updates.push(`milestone_id = $${paramIndex++}`);
+      values.push(milestoneId);
     }
 
     values.push(taskId, req.session.userId);
@@ -118,7 +129,7 @@ async function updateTask(req, res, next) {
 
     return res.json(result.rows[0]);
   } catch (error) {
-    next(error);
+    sendMilestoneAssignmentError(error, res, next);
   }
 }
 

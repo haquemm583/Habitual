@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import pool from './db.js';
 
 export async function migrateDatabase() {
-  const migrations = ['001_habit_tracking.sql', '003_rename_tasks.sql'];
+  const migrations = ['001_habit_tracking.sql', '002_habit_milestones.sql', '003_rename_tasks.sql'];
   const sql = await Promise.all(migrations.map((file) =>
     readFile(new URL(`./migrations/${file}`, import.meta.url), 'utf8')));
   const client = await pool.connect();
