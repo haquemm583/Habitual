@@ -8,6 +8,20 @@
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+@utility secondary-control {
+  @apply inline-flex min-h-10 items-center gap-2 rounded-lg border border-stroke bg-surface px-3 text-sm font-semibold text-foreground no-underline hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus;
+}
+
+@utility divided-list {
+  @apply divide-y divide-stroke/55 border-y border-stroke/55;
+}
+
+@property --progress-sweep {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+
 /* Crossfade the theme as one image, including backgrounds, text, and branding. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
@@ -43,6 +57,9 @@
   --color-focus: #51614b;
   --color-hover: #e4e8e1;
   --color-danger: #b91c1c;
+  --color-progress-task: #5464b8;
+  --color-progress-habit: #237b61;
+  --color-progress-goal: #966023;
   --color-tooltip: #202c1a;
   --color-on-tooltip: #ffffff;
   --ease-fluid: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -51,6 +68,13 @@
   --animate-drawer-enter: drawer-enter 220ms var(--ease-fluid) both;
   --animate-backdrop-enter: tooltip-enter 180ms ease-out both;
   --animate-habit-float: habit-float 8s ease-in-out infinite;
+  --animate-streak-flame: streak-flame 550ms var(--ease-fluid) both;
+
+  @keyframes streak-flame {
+    0%, 100% { transform: scale(1); }
+    40% { transform: scale(1.3) rotate(-9deg); }
+    70% { transform: scale(1.08) rotate(5deg); }
+  }
 
   @keyframes habit-float {
     0%, 100% { translate: 0 0; }
@@ -94,6 +118,9 @@
     --color-focus: #a7c795;
     --color-hover: #303e2b;
     --color-danger: #fca5a5;
+    --color-progress-task: #aeb9ff;
+    --color-progress-habit: #7bdbb1;
+    --color-progress-goal: #efbf7b;
     --color-tooltip: #edf2e8;
     --color-on-tooltip: #182215;
   }
