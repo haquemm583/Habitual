@@ -10,6 +10,7 @@
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import Brand from '../components/Brand';
+import NavigationLink from '../components/NavigationLink';
 import ThemeToggle from '../components/theme/ThemeToggle';
 import Footer from '../components/layout/Footer';
 
@@ -23,16 +24,16 @@ function Home() {
   const { user, loading } = useAuth();
 
   if (loading) return <p role="status" className="p-6 text-muted">Checking your session...</p>;
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to="/" replace />;
 
   return (
     <div className="flex min-h-dvh flex-col bg-canvas text-foreground">
       <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-5 sm:px-10">
-        <Link to="/" aria-label="Habitual home" className="rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus">
+        <Link to="/welcome" aria-label="Habitual welcome page" className="rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus">
           <Brand className="w-32 sm:w-40" />
         </Link>
         <nav aria-label="Main navigation" className="flex items-center gap-1 sm:gap-4">
-          <Link to="/login" className="rounded-md px-3 py-3 text-sm font-medium text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">Log in</Link>
+          <NavigationLink to="/login">Log in</NavigationLink>
           <ThemeToggle />
         </nav>
       </header>

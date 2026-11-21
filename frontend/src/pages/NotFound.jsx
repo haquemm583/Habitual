@@ -11,13 +11,16 @@
   Last modified by: Maaz Haque
   Last modified on: 11/14/2026
 */
-import { Link } from "react-router-dom";
+import { useAuth } from '../auth/AuthContext';
+import NavigationLink from '../components/NavigationLink';
 
 function NotFound() {
+  const { user } = useAuth();
+
   return (
     <div className="page not-found-page">
       <h2 className="my-[0.83em] text-2xl font-bold">Page not found!</h2>
-      <Link className="text-muted underline visited:text-foreground" to="/">Click here to go back to the home page.</Link>
+      <NavigationLink to={user ? '/' : '/welcome'} back>{user ? 'Back to Today' : 'Back to welcome'}</NavigationLink>
     </div>
   );
 }

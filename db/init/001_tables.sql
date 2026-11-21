@@ -1,6 +1,6 @@
 -- 001_tables.sql
 --
--- creates tables for users, milestones, and habits
+-- creates tables for users, milestones, and one-time tasks
 -- runs automatically the first time the db container starts
 
 
@@ -26,13 +26,13 @@ CREATE TABLE milestones (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     -- lets other tables reference (id, user_id) as a composite key
-    -- this constraint is to ensure that a habit can only belong to a milestone owned by the same user
+    -- this constraint ensures that a task or habit can only belong to a milestone owned by the same user
     UNIQUE (id, user_id)
 );
 
--- each user can have many habits
--- a habit can optionally belong to one milestone
-CREATE TABLE habits (
+-- each user can have many tasks
+-- a task can optionally belong to one milestone
+CREATE TABLE tasks (
     id            SERIAL PRIMARY KEY,
     user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     milestone_id  INTEGER,
@@ -40,7 +40,7 @@ CREATE TABLE habits (
     completed     BOOLEAN NOT NULL DEFAULT FALSE,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-    -- the milestone must belong to the same user as the habit
+    -- the milestone must belong to the same user as the task
     FOREIGN KEY (milestone_id, user_id)
         REFERENCES milestones (id, user_id)
         ON DELETE SET NULL (milestone_id)
@@ -51,9 +51,9 @@ CREATE TABLE habits (
 -- speeds up "all milestones for user X" and cascading user deletes
 CREATE INDEX milestones_user_id_idx ON milestones (user_id);
 
--- speeds up "all habits for user X" and cascading user deletes
-CREATE INDEX habits_user_id_idx ON habits (user_id);
+-- speeds up "all tasks for user X" and cascading user deletes
+CREATE INDEX tasks_user_id_idx ON tasks (user_id);
 
--- speeds up "all habits for milestone X" and the SET NULL when a milestone is deleted
-CREATE INDEX habits_milestone_id_idx ON habits (milestone_id)
+-- speeds up "all tasks for milestone X" and the SET NULL when a milestone is deleted
+CREATE INDEX tasks_milestone_id_idx ON tasks (milestone_id)
     WHERE milestone_id IS NOT NULL;

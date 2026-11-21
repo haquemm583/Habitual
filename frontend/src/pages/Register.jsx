@@ -47,7 +47,7 @@ function Register() {
   }
 
   if (loading) return <p role="status">Checking your session...</p>;
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to="/" replace />;
 
   const inputClass = 'min-h-16 w-full rounded-md transition-colors duration-150 motion-reduce:transition-none border border-field-border bg-surface px-4 py-3 text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus';
 

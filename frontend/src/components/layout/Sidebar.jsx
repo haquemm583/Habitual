@@ -8,6 +8,10 @@
 
   Last modified by: Maaz Haque
   Last modified on: 11/14/2026
+
+  Last modified by: Joseph Duff
+  Last modified on: 11/20/2026
+
 */
 import { Link, NavLink } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
@@ -26,6 +30,9 @@ const iconPaths = {
   home: 'm3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z',
   login: 'M14 3h6v18h-6M3 12h12m-4-4 4 4-4 4',
   dashboard: 'M3 3h7v7H3ZM14 3h7v7h-7ZM3 14h7v7H3ZM14 14h7v7h-7Z',
+  tasks: 'M9 6h12M9 12h12M9 18h12M3 6l1 1 2-2M3 12l1 1 2-2M3 18l1 1 2-2',
+  habits: 'M20 7a9 9 0 1 0 1 9M20 3v5h-5M8 12l3 3 6-6',
+  milestones: 'M5 21V4m0 0h11l-2 4 2 4H5',
   logout: 'M10 3H4v18h6m3-13 4 4-4 4m-5-4h13',
   collapse: 'm14 6-6 6 6 6',
   expand: 'm10 6 6 6-6 6',
@@ -74,6 +81,8 @@ function Sidebar({ onNavigate, collapsed = false, pinned = false, onToggle }) {
   }
 
   function iconAccessibility(label) {
+    if (pinned || !onToggle) return { 'aria-label': label };
+
     function showTooltip(event) {
       keepTooltip();
       const bounds = event.currentTarget.getBoundingClientRect();
@@ -147,9 +156,11 @@ function Sidebar({ onNavigate, collapsed = false, pinned = false, onToggle }) {
       )}
 
       <nav id={onToggle ? 'desktop-navigation' : undefined} aria-label="Main navigation" className="mt-4 flex flex-1 flex-col gap-1">
-        <NavLink onClick={navigate} {...iconAccessibility('Home')} className={navLinkClass} to="/" end><SidebarIcon name="home" /><SidebarLabel collapsed={collapsed}>Home</SidebarLabel></NavLink>  {/* end is needed otherwise the slash will match all links */}
+        <NavLink onClick={navigate} {...iconAccessibility('Today')} className={navLinkClass} to="/" end><SidebarIcon name="dashboard" /><SidebarLabel collapsed={collapsed}>Today</SidebarLabel></NavLink>  {/* end is needed otherwise the slash will match all links */}
         {!loading && !user && <NavLink onClick={navigate} {...iconAccessibility('Login')} className={navLinkClass} to="/login"><SidebarIcon name="login" /><SidebarLabel collapsed={collapsed}>Login</SidebarLabel></NavLink>}
-        <NavLink onClick={navigate} {...iconAccessibility('Dashboard')} className={navLinkClass} to="/dashboard"><SidebarIcon name="dashboard" /><SidebarLabel collapsed={collapsed}>Dashboard</SidebarLabel></NavLink>
+        {user && <NavLink onClick={navigate} {...iconAccessibility('Tasks')} className={navLinkClass} to="/tasks"><SidebarIcon name="tasks" /><SidebarLabel collapsed={collapsed}>Tasks</SidebarLabel></NavLink>}
+        {user && <NavLink onClick={navigate} {...iconAccessibility('Habits')} className={navLinkClass} to="/habits"><SidebarIcon name="habits" /><SidebarLabel collapsed={collapsed}>Habits</SidebarLabel></NavLink>}
+        {user && <NavLink onClick={navigate} {...iconAccessibility('Milestones')} className={navLinkClass} to="/milestones"><SidebarIcon name="milestones" /><SidebarLabel collapsed={collapsed}>Milestones</SidebarLabel></NavLink>}
         <div className="mt-auto pt-4">
           <ThemeToggle showLabel collapsed={collapsed} {...iconAccessibility('Dark mode')} />
         </div>

@@ -102,23 +102,63 @@ The backend provides `POST /api/auth/register`, `POST /api/auth/login`, `GET /ap
 
 Sessions are stored in PostgreSQL; the session table is created automatically. The browser receives an HTTP-only cookie that expires after 24 hours. `NODE_ENV=production` requires HTTPS for this cookie. `FRONTEND_ORIGIN` defaults to `http://localhost:9000` and controls which frontend origin may submit authentication and task requests.
 
-React checks the current session when the app starts. Logged-out Dashboard visits redirect to Login, and successful login returns to Dashboard. Logout removes the server session and updates navigation. Session-check failures display an error and retry control instead of rendering Dashboard. The public landing page includes a headline, account links, an introductory checklist, and team credit in the footer. Signed-in visitors to Home go directly to Dashboard. Each user's tasks are stored in PostgreSQL and loaded through the tasks API.
+React checks the current session when the app starts. Home (`/`) is the protected Dashboard, with a task overview and today's habits. Task management lives at `/tasks`, and habit management lives at `/habits`. The old `/dashboard` URL redirects to `/`. Logged-out visits to these pages redirect to Login; successful login returns to the requested page or defaults to `/`. Logout removes the server session and updates navigation. Session-check failures display an error and retry control. The public landing page remains available at `/welcome`, with a headline, account links, an introductory checklist, and team credit in the footer. Signed-in visitors to `/welcome` go to Dashboard. Each user's tasks are stored in PostgreSQL and loaded through the tasks API.
 
-Dashboard shows active tasks first and keeps completed tasks in a collapsed section with a count. Expand it to review tasks or uncheck an item to make it active again. Creating, renaming, completing, and deleting tasks are saved to the database, so changes persist across reloads. Technical task-loading error details expand on demand. Required registration fields and password guidance remain visible.
+The Tasks page shows active tasks first and keeps completed tasks in a collapsed section with a count. Expand it to review tasks or uncheck an item to make it active again. Creating, renaming, completing, and deleting tasks are saved to the database, so changes persist across reloads. Technical task-loading error details expand on demand. Required registration fields and password guidance remain visible.
 
 ### Manual verification
 
 1. Create a test account through `/register`, verify the Login success message, and check that a duplicate email displays an error.
-2. Visit `/dashboard` while logged out and verify redirection to `/login`.
+2. Visit `/`, `/tasks`, and `/habits` while logged out and verify redirection to `/login`.
 3. Submit an incorrect password and verify the error message.
 4. Sign in correctly, verify Dashboard loads, and refresh to verify the session persists.
-5. Use Logout, then revisit `/dashboard` and verify login is required again.
+5. Use Logout, then revisit `/` and verify login is required again. Open `/tasks` while logged out, sign in, and verify that login returns to Tasks. Verify `/dashboard` redirects to `/`.
 6. Check navigation and both authentication forms at a narrow mobile width.
    Verify that Menu opens the navigation drawer, links close it, and Escape returns focus to Menu. On desktop, verify that the sidebar remains beside the page content.
-7. Create a task, rename it, mark it complete, and delete it, reloading the page after each step to verify the change persists. Sign in as a different account and verify the first account's tasks are not shown.
-8. Complete a Dashboard task, expand Completed tasks, and uncheck it to restore it. Check the empty state after completing all tasks.
-9. Visit Home while logged out and verify the introductory checklist, footer team credit, and account links. If task loading fails, verify that the error stays visible while Technical details starts collapsed.
+7. On `/tasks`, create a task, rename it, mark it complete, and delete it, reloading the page after each step to verify the change persists. Sign in as a different account and verify the first account's tasks are not shown.
+8. Complete a task on Tasks, expand Completed tasks, and uncheck it to restore it. Check the empty state after completing all tasks. Return to Dashboard and verify the overview counts reflect the saved changes.
+9. Visit `/welcome` while logged out and verify the introductory checklist, footer team credit, and account links. If task loading fails, verify that the error stays visible while Technical details starts collapsed. Verify Dashboard and Habits do not contain task creation or editing controls.
 10. Toggle Dark mode with the mouse and keyboard. Navigate between app and authentication pages, then reload to verify that the preference persists. Check task rows, inputs, landing page, and sidebar labels in both themes at desktop and mobile widths.
+
+## Habit tracking
+
+Open **Habits** from the sidebar or mobile menu to manage recurring habits. Dashboard shows today's scheduled habits alongside a summary linking to the separate Tasks page.
+
+Habit creation starts with a name and **Add habit** (or Enter). New habits default to every day, starting today. Expand **More options** to choose specific weekdays, another start date, or an optional description. Weekday checkboxes appear only after selecting **Specific days**. Each compact habit row has today's completion control and a **Details** disclosure for editing, history, statistics, archival, and deletion. Overall statistics and the calendar are under **Progress**; archived habits have their own collapsed section. History month controls share the selected calendar month.
+
+- Create a habit with a name, optional description, start date, and daily or selected-weekday schedule. Names support 1–200 characters and descriptions up to 2000. Supported start dates range from 1900 through 9998 and can be past, today, or future. The start date stays fixed after creation.
+- Check off today's habit or open **Details** to mark or undo an earlier scheduled date in its history calendar. Future dates, dates before the start, and unscheduled dates cannot be checked off. Dates during an archived interval are also unavailable. Earlier scheduled dates count as missed until completed.
+- Editing a schedule changes tomorrow onward, or the start date if later. Historical schedules and check-ins stay intact. The most recent edit replaces pending schedule changes.
+- Current and longest streaks count consecutive scheduled completions. Unscheduled days do not break streaks; unfinished today does not break a streak until tomorrow. Correcting past check-ins recalculates progress.
+- Archive a habit to preserve its history in read-only form. Restore it to resume tracking with a fresh current streak. The longest streak remains available. Same-day restoration preserves today's check-in while starting a new streak period. Permanent deletion requires confirmation and removes the habit's history.
+- Weekly progress starts Monday. Percentages count scheduled dates through today, including unfinished today. Per-habit and overall calendars use the selected month. Overall streak cards show the best current and longest individual streak among active habits. Archived habits are excluded from every overall total, including past dates; archiving can therefore change historical totals.
+- The device timezone determines today. Existing check-ins keep their original calendar dates when the device timezone changes. The page refreshes on focus and every 30 seconds while visible, including across midnight. Reminders are deferred.
+
+Backend startup applies the migrations in `backend/src/migrations/` to both existing and new databases. One-time tasks use `tasks` and recurring habits use `recurring_habits`. The startup migration renames the old `habits` task table in place, preserving task IDs, completion status, and milestone links. Existing database volumes can be reused.
+
+All habit API endpoints require a session and a `timezone` query parameter, such as `?timezone=America%2FChicago`. An optional `month=2026-11` selects the calendar month; otherwise the server uses the device's current month.
+
+| Method | Endpoint | Body / result |
+| --- | --- | --- |
+| `GET` | `/api/habits` | Today's date, habits with progress/history, and the overall summary. |
+| `POST` | `/api/habits` | `{ "name": "Walk", "description": "", "startDate": "2026-11-19", "weekdays": [1, 2, 3, 4, 5] }`; returns the new ID. Sunday is `0`, Monday is `1`. |
+| `PATCH` | `/api/habits/:id` | Name, description, and/or weekdays. Start-date changes are rejected. |
+| `PUT` | `/api/habits/:id/checkins/:date` | `{ "completed": true }` or `{ "completed": false }`; repeated writes are safe. |
+| `POST` | `/api/habits/:id/archive` | Archive a habit. |
+| `POST` | `/api/habits/:id/restore` | Restore an archived habit. |
+| `DELETE` | `/api/habits/:id` | Permanently delete the habit and its check-ins. |
+
+Creation returns `201`; successful updates return `204`. Invalid fields/context return `400`, missing sessions `401`, rejected browser origins `403`, another account's or missing habit `404`, and attempts to edit an archived habit `409`.
+
+Run habit unit tests locally with `node --test backend/test/habit-progress.test.js`. With Docker running, run all regression checks:
+
+```sh
+docker compose exec backend node --test test/habit-progress.test.js test/habits-api.test.js tests/test_api.js
+```
+
+The habit API tests remove their own test accounts and related data. Existing authentication/task tests retain their test accounts.
+
+Manual checks: create a daily habit starting yesterday; complete yesterday and today and verify streaks and percentages after reload. Change its weekdays and verify today's schedule stays unchanged. Complete/undo a habit on Dashboard. Archive it and verify overall totals exclude it, then restore it and verify history remains. Cancel and confirm permanent deletion. Repeat on mobile and in dark mode, and verify regular tasks still work.
 
 ## Working together
 
