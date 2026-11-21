@@ -28,3 +28,18 @@ export async function tasksRequest(path = '', options = {}) {
   return data;
 }
 
+export async function milestonesRequest(path = '', options = {}) {
+  const url = path ? `/api/milestones/${path}` : '/api/milestones';
+  const response = await fetch(url, {
+    credentials: 'same-origin',
+    ...options,
+  });
+
+  if (response.status === 204) return null;
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(data?.error || 'Unable to reach the server. Please try again.');
+  if (!data) throw new Error('The server returned an invalid response. Please try again.');
+  return data;
+
+}

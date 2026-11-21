@@ -36,7 +36,7 @@ function Login() {
   const [error, setError] = useState('');
   const { user, loading, login } = useAuth();
   const from = location.state?.from;
-  const destination = typeof from === 'string' && /^\/(?:dashboard|tasks|habits)?(?:[?#]|$)/.test(from) ? from : '/';
+  const destination = typeof from === 'string' && /^\/(?:dashboard|tasks|habits|milestones)?(?:[?#]|$)/.test(from) ? from : '/';
   
   async function handleSubmit(event) {
     // prevents the page from reloading before the submission is handled 

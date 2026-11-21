@@ -13,6 +13,9 @@
 
   Last modified by: Maaz Haque
   Last modified on: 11/14/2026
+
+  Last modified by: Joseph Duff
+  Last modified on: 11/20/2026
 */
 import { Navigate, Routes, Route } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
@@ -21,6 +24,7 @@ import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
 import Habits from './pages/Habits';
+import Milestones from './pages/Milestones';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -34,6 +38,7 @@ function App() {
         <Route path="dashboard" element={<Navigate to="/" replace />} />
         <Route path="tasks" element={<RequireAuth><Tasks /></RequireAuth>} />
         <Route path="habits" element={<RequireAuth><Habits /></RequireAuth>} />
+        <Route path="milestones" element={<RequireAuth><Milestones /></RequireAuth>} />
         <Route path="*" element={<NotFound />} /> {/* shows when an invalid route is typed in the url */}
       </Route>
       {/* Account pages use a separate layout. */}

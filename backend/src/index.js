@@ -11,6 +11,7 @@ import pool from './db.js';
 import authRoutes from './routes/auth.js';
 import taskRoutes from './routes/tasks.js';
 import habitRoutes from './routes/habits.js';
+import milestoneRoutes from './routes/milestones.js';
 import { migrateHabits } from './migrate-habits.js';
 import sessionMiddleware from './session.js';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -23,6 +24,7 @@ app.use(sessionMiddleware);
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/habits', habitRoutes);
+app.use('/api/milestones', milestoneRoutes);
 
 // simple health check
 app.get("/api/health", async (req, res) => {
