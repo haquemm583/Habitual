@@ -5,13 +5,35 @@
 
 	Created by: CJ Quintero
 	Created on: 11/18/2026
+
+	Modified by: Joseph Duff
+	Modified on: 11/20/2026
 */
 
 import { Router } from 'express'
 import pool from '../db.js'
-import { isMatch } from 'date-fns'
 
 const router = Router()
+
+const NAME_MAX_LENGTH = 200
+const DESCRIPTION_MAX_LENGTH = 2000
+
+/*
+  columns returned for every milestone, named in camelCase like the tasks API.
+
+  the DATE columns are cast to text on purpose: the pg driver would otherwise turn
+  them into JS Dates, which get shifted by the server's timezone when they are
+  converted to JSON. as text they always come back as plain YYYY-MM-DD strings.
+*/
+const MILESTONE_COLUMNS = `
+  id,
+  name,
+  description,
+  target_date::text AS "targetDate",
+  completed_on::text AS "completedOn",
+  created_at AS "createdAt"
+`
+
 
 function parseMilestoneId(rawId) {
 	/*
@@ -24,6 +46,58 @@ function parseMilestoneId(rawId) {
   }
 
   return id;
+}
+
+function isValidDateString(value) {
+  /*
+    checks that a value is a real calendar date written as YYYY-MM-DD
+    (so 2026-02-30 is rejected)
+  */
+
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false
+  }
+
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+
+  // building the date rolls invalid days over (Feb 30 -> Mar 2), so the
+  // parts only match what was typed when the date is real
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  )
+}
+
+function validateName(name) {
+  /* returns an error message if the name is invalid, otherwise null */
+
+  if (typeof name !== 'string' || !name.trim() || name.trim().length > NAME_MAX_LENGTH) {
+    return `Milestone name must contain 1 to ${NAME_MAX_LENGTH} characters.`
+  }
+  return null
+}
+
+function validateDescription(description) {
+  /* the description has to be a string or null (undefined is handled by the caller) */
+
+  if (description !== null && typeof description !== 'string') {
+    return 'Description must be a string.'
+  }
+  if (typeof description === 'string' && description.trim().length > DESCRIPTION_MAX_LENGTH) {
+    return `Description must be ${DESCRIPTION_MAX_LENGTH} characters or fewer.`
+  }
+  return null
+}
+
+function validateDate(value, label) {
+  /* a date has to be a valid YYYY-MM-DD string or null (undefined is handled by the caller) */
+
+  if (value !== null && !isValidDateString(value)) {
+    return `${label} must be YYYY-MM-DD.`
+  }
+  return null
 }
 
 
