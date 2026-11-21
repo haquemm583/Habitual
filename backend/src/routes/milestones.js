@@ -25,14 +25,15 @@ const DESCRIPTION_MAX_LENGTH = 2000
   them into JS Dates, which get shifted by the server's timezone when they are
   converted to JSON. as text they always come back as plain YYYY-MM-DD strings.
 */
-const MILESTONE_COLUMNS = `
-  id,
-  name,
-  description,
-  target_date::text AS "targetDate",
-  completed_on::text AS "completedOn",
-  created_at AS "createdAt"
-`
+
+// const MILESTONE_COLUMNS = `
+//   id,
+//   name,
+//   description,
+//   target_date::text AS "targetDate",
+//   completed_on::text AS "completedOn",
+//   created_at AS "createdAt"
+// `
 
 
 function parseMilestoneId(rawId) {
@@ -159,8 +160,8 @@ router.get('/:id', async (req, res, next) => {
 	// get the id
 	const milestoneId = parseMilestoneId(req.params.id)
 	if (!milestoneId) {
-    return res.status(400).json({ error: 'Invalid milestone ID.' });
-  }
+		return res.status(400).json({ error: 'Invalid milestone ID.' });
+	}
 
 	try {
 		const result = await pool.query(
@@ -174,8 +175,8 @@ router.get('/:id', async (req, res, next) => {
 		)
 
 		if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Milestone not found.' });
-    }
+			return res.status(404).json({ error: 'Milestone not found.' });
+		}
 
 		return res.json(result.rows[0])
 	} catch (error) {
@@ -184,6 +185,7 @@ router.get('/:id', async (req, res, next) => {
 })
 
 
+// POST /api/milestones - create a milestone for the logged-in user
 router.post('/', async (req, res, next) => {
 	/*
 		creates a new milestone if valid or gives an error
@@ -192,26 +194,12 @@ router.post('/', async (req, res, next) => {
 
 	const { name, description, target_date } = req.body ?? {};
 
-	// validate name
-	if (typeof name !== 'string' || !name.trim() || name.trim().length > 200) {
-    return res.status(400).json({ error: 'Milestone name must contain 1 to 200 characters.' });
-  }
-
-	// validate description - has to be a string, null, or undefined
-	if (description !== undefined && description !== null && typeof description !== 'string') {
-  	return res.status(400).json({ error: 'Description must be a string.' });
-	}
-
-	// validate target date - must be a string in yyyy-MM-dd format
-	if (
-		target_date != null &&
-		(
-			typeof target_date !== 'string' || 					// must be string
-			!/^\d{4}-\d{2}-\d{2}$/.test(target_date) || // must be 4 digit year, 2 digit month, 2 digit day
-			!isMatch(target_date, 'yyyy-MM-dd') 				// must be in yyyy-MM-dd format
-		)
-	) {
-		return res.status(400).json({ error: 'Target date must be YYYY-MM-DD.' });
+	const error =
+		validateName(name) ??
+		validateDescription(description ?? null) ??
+		validateDate(targetDate ?? null, 'Target date')
+	if (error) {
+		return res.status(400).json({ error })
 	}
 
 	try {
@@ -234,6 +222,109 @@ router.post('/', async (req, res, next) => {
 	} catch (error) {
 		next(error)
 	}
+})
+
+
+// PATCH /api/milestones/:id - update a milestone owned by the logged-in user
+router.patch('/:id', async (req, res, next) => {
+  /*
+    updates any of: name, description, targetDate, completedOn
+
+    only the fields that are sent are changed. null clears
+    description, targetDate, and completedOn. completedOn is the date
+    the milestone was finished (YYYY-MM-DD), sending null marks it
+    as not completed again. the client sends the date so that it uses
+    the user's own timezone instead of the database server's.
+  */
+
+  const milestoneId = parseMilestoneId(req.params.id)
+  if (!milestoneId) {
+    return res.status(400).json({ error: 'Invalid milestone ID.' })
+  }
+
+  const { name, description, targetDate, completedOn } = req.body ?? {}
+
+  if ([name, description, targetDate, completedOn].every((value) => value === undefined)) {
+    return res.status(400).json({
+      error: 'Provide a name, description, target date, or completed date to update.',
+    })
+  }
+
+  // only validate the fields that were sent
+  const error =
+    (name !== undefined ? validateName(name) : null) ??
+    (description !== undefined ? validateDescription(description) : null) ??
+    (targetDate !== undefined ? validateDate(targetDate, 'Target date') : null) ??
+    (completedOn !== undefined ? validateDate(completedOn, 'Completed date') : null)
+  if (error) {
+    return res.status(400).json({ error })
+  }
+
+  // build the SET clause from only the fields that were sent
+  const updates = []
+  const values = []
+  function setField(column, value) {
+    values.push(value)
+    updates.push(`${column} = $${values.length}`)
+  }
+
+  if (name !== undefined) setField('name', name.trim())
+  if (description !== undefined) setField('description', description?.trim() || null)
+  if (targetDate !== undefined) setField('target_date', targetDate)
+  if (completedOn !== undefined) setField('completed_on', completedOn)
+
+  // the ownership check is part of the WHERE so one user can't edit another's milestone
+  values.push(milestoneId, req.session.userId)
+
+  try {
+    const result = await pool.query(
+      `
+      UPDATE milestones
+      SET ${updates.join(', ')}
+      WHERE id = $${values.length - 1}
+      AND user_id = $${values.length}
+      RETURNING ${MILESTONE_COLUMNS}
+      `,
+      values,
+    )
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Milestone not found.' })
+    }
+
+    return res.json(result.rows[0])
+  } catch (error) {
+    next(error)
+  }
+})
+
+
+// DELETE /api/milestones/:id - delete a milestone owned by the logged-in user
+router.delete('/:id', async (req, res, next) => {
+  /*
+    deletes a milestone. habits that were in it are kept and just
+    become unassigned (the habits table sets milestone_id to NULL)
+  */
+
+  const milestoneId = parseMilestoneId(req.params.id)
+  if (!milestoneId) {
+    return res.status(400).json({ error: 'Invalid milestone ID.' })
+  }
+
+  try {
+    const result = await pool.query(
+      'DELETE FROM milestones WHERE id = $1 AND user_id = $2',
+      [milestoneId, req.session.userId],
+    )
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Milestone not found.' })
+    }
+
+    return res.sendStatus(204)
+  } catch (error) {
+    next(error)
+  }
 })
 
 export default router
