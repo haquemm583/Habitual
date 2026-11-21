@@ -25,6 +25,7 @@ import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
 import Habits from './pages/Habits';
 import Milestones from './pages/Milestones';
+import MilestoneDetail from './pages/MilestoneDetail';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -39,6 +40,7 @@ function App() {
         <Route path="tasks" element={<RequireAuth><Tasks /></RequireAuth>} />
         <Route path="habits" element={<RequireAuth><Habits /></RequireAuth>} />
         <Route path="milestones" element={<RequireAuth><Milestones /></RequireAuth>} />
+        <Route path="milestones/:id" element={<RequireAuth><MilestoneDetail /></RequireAuth>} />
         <Route path="*" element={<NotFound />} /> {/* shows when an invalid route is typed in the url */}
       </Route>
       {/* Account pages use a separate layout. */}

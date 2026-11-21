@@ -22,16 +22,19 @@ function MilestoneForm({
   resetOnSuccess = false,
   onSubmit,
   onCancel,
+  onDelete,
+  deleting = false,
 }) {
   const [name, setName] = useState(initial?.name ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [targetDate, setTargetDate] = useState(initial?.targetDate ?? '');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const busy = submitting || deleting;
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (submitting) return;
+    if (busy) return;
 
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -74,7 +77,7 @@ function MilestoneForm({
           value={name}
           onChange={(event) => setName(event.target.value)}
           maxLength={200}
-          disabled={submitting}
+          disabled={busy}
           autoFocus={Boolean(onCancel)}
           className={`min-h-12 ${fieldClass}`}
         />
@@ -89,7 +92,7 @@ function MilestoneForm({
           type="date"
           value={targetDate}
           onChange={(event) => setTargetDate(event.target.value)}
-          disabled={submitting}
+          disabled={busy}
           className={`min-h-12 sm:w-56 ${fieldClass}`}
         />
       </div>
@@ -104,7 +107,7 @@ function MilestoneForm({
           onChange={(event) => setDescription(event.target.value)}
           maxLength={2000}
           rows={3}
-          disabled={submitting}
+          disabled={busy}
           className={fieldClass}
         />
       </div>
@@ -112,7 +115,7 @@ function MilestoneForm({
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="submit"
-          disabled={submitting}
+          disabled={busy}
           className="min-h-12 cursor-pointer rounded-md bg-primary px-5 py-2 font-medium text-on-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-60"
         >
           {submitting ? busyLabel : submitLabel}
@@ -121,13 +124,17 @@ function MilestoneForm({
           <button
             type="button"
             onClick={onCancel}
-            disabled={submitting}
+            disabled={busy}
             className="min-h-12 cursor-pointer rounded-md border border-stroke bg-surface px-5 py-2 font-medium text-foreground transition-colors duration-150 motion-reduce:transition-none hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60"
           >
             Cancel
           </button>
         )}
       </div>
+      {onDelete && <div className="border-t border-stroke pt-3">
+        <button type="button" disabled={busy} onClick={onDelete}
+          className="secondary-control cursor-pointer text-danger disabled:opacity-60">Delete milestone</button>
+      </div>}
     </form>
   );
 }

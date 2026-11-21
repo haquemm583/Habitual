@@ -11,24 +11,34 @@
   Last modified by: Maaz Haque
   Last modified on: 11/14/2026
 */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useLayoutEffect, useRef } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { tasksRequest } from '../auth/api';
+import { useTasks } from '../tasks/useTasks';
+import MilestonePicker from '../components/MilestonePicker';
+import MilestoneChip from '../components/MilestoneChip';
+import CompletionControl from '../components/CompletionControl';
+import CompletionNotice from '../components/CompletionNotice';
+import ViewSwitcher from '../components/ViewSwitcher';
+import { useMilestoneOptions } from '../milestones/useMilestoneOptions';
 
 function Tasks() {
   const { user } = useAuth();
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [networkError, setNetworkError] = useState(null);
+  const milestoneOptions = useMilestoneOptions();
+  const { tasks, loadError, reload, createTask, updateTask, deleteTask } = useTasks();
   const [actionError, setActionError] = useState('');
+  const [change, setChange] = useState(null);
+  const [view, setView] = useState('active');
+  const focusAfterRender = useRef(null);
 
   // Create task state
   const [newTaskName, setNewTaskName] = useState('');
+  const [newMilestoneId, setNewMilestoneId] = useState(null);
   const [creating, setCreating] = useState(false);
 
   // Edit task state
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
+  const [editingMilestoneId, setEditingMilestoneId] = useState(null);
 
   // Track in-flight task mutations by task ID
   const [busyTaskIds, setBusyTaskIds] = useState([]);
@@ -39,35 +49,14 @@ function Tasks() {
     );
   }
 
-  const loadTasks = useCallback((signal) =>
-    tasksRequest('', { signal })
-      .then((data) => {
-        if (!signal?.aborted) {
-          setTasks(data);
-        }
-      })
-      .catch((err) => {
-        if (!signal?.aborted) {
-          setNetworkError(err.message);
-        }
-      })
-      .finally(() => {
-        if (!signal?.aborted) {
-          setLoading(false);
-        }
-      }), []);
-
-  function retryLoadTasks() {
-    setLoading(true);
-    setNetworkError(null);
-    loadTasks();
-  }
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadTasks(controller.signal);
-    return () => controller.abort();
-  }, [loadTasks]);
+  useLayoutEffect(() => {
+    const target = focusAfterRender.current;
+    if (!target) return;
+    focusAfterRender.current = null;
+    const element = document.getElementById(target.id);
+    if (element && !element.closest('[hidden]')) element.focus();
+    else if (target.fallback) document.getElementById(target.fallback)?.focus();
+  }, [tasks, editingId, change]);
 
   async function handleCreateTask(event) {
     event.preventDefault();
@@ -82,13 +71,9 @@ function Tasks() {
     setCreating(true);
     setActionError('');
     try {
-      const createdTask = await tasksRequest('', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmedName }),
-      });
-      setTasks((currentTasks) => [...currentTasks, createdTask]);
+      await createTask({ name: trimmedName, milestoneId: newMilestoneId });
       setNewTaskName('');
+      setNewMilestoneId(null);
     } catch (err) {
       setActionError(err.message);
     } finally {
@@ -97,20 +82,25 @@ function Tasks() {
   }
 
   // Flip completion for the selected task.
-  async function toggleTask(task) {
+  async function toggleTask(task, undoing = false) {
     if (busyTaskIds.includes(task.id)) return;
 
     setTaskBusy(task.id, true);
     setActionError('');
     try {
-      const updatedTask = await tasksRequest(String(task.id), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ completed: !task.completed }),
-      });
-      setTasks((currentTasks) =>
-        currentTasks.map((item) => (item.id === task.id ? updatedTask : item))
-      );
+      const updatedTask = await updateTask(task.id, { completed: !task.completed });
+      const checkboxId = `task-completion-${task.id}`;
+      if (undoing || document.activeElement?.id === checkboxId) {
+        focusAfterRender.current = { id: checkboxId, fallback: 'undo-task-change' };
+      }
+      setChange(undoing
+        ? { message: 'Task change undone.' }
+        : {
+          taskId: task.id,
+          celebrate: updatedTask.completed ? task.id : null,
+          message: updatedTask.completed ? 'Task completed.' : 'Task reopened.',
+          undo: () => toggleTask(updatedTask, true),
+        });
     } catch (err) {
       setActionError(err.message);
     } finally {
@@ -122,16 +112,19 @@ function Tasks() {
     if (busyTaskIds.includes(editingId)) return;
     setEditingId(task.id);
     setEditingName(task.name);
+    setEditingMilestoneId(task.milestoneId ?? null);
     setActionError('');
   }
 
   function cancelEditing() {
+    focusAfterRender.current = { id: `task-edit-${editingId}` };
     setEditingId(null);
     setEditingName('');
   }
 
-  async function handleSaveEdit(event, taskId) {
+  async function handleSaveEdit(event, task) {
     event.preventDefault();
+    const taskId = task.id;
     if (busyTaskIds.includes(taskId)) return;
 
     const trimmedName = editingName.trim();
@@ -143,16 +136,11 @@ function Tasks() {
     setTaskBusy(taskId, true);
     setActionError('');
     try {
-      const updatedTask = await tasksRequest(String(taskId), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmedName }),
+      await updateTask(taskId, {
+        name: trimmedName,
+        ...(editingMilestoneId !== (task.milestoneId ?? null) ? { milestoneId: editingMilestoneId } : {}),
       });
-      setTasks((currentTasks) =>
-        currentTasks.map((item) => (item.id === taskId ? updatedTask : item))
-      );
-      setEditingId(null);
-      setEditingName('');
+      cancelEditing();
     } catch (err) {
       setActionError(err.message);
     } finally {
@@ -166,13 +154,12 @@ function Tasks() {
     setTaskBusy(taskId, true);
     setActionError('');
     try {
-      await tasksRequest(String(taskId), {
-        method: 'DELETE',
-      });
-      setTasks((currentTasks) => currentTasks.filter((item) => item.id !== taskId));
+      await deleteTask(taskId);
+      setChange((current) => current?.taskId === taskId ? null : current);
       if (editingId === taskId) {
         cancelEditing();
       }
+      focusAfterRender.current = { id: 'task-list-heading' };
     } catch (err) {
       setActionError(err.message);
     } finally {
@@ -183,19 +170,20 @@ function Tasks() {
   // Reuse the same rows for active and completed tasks.
   function renderTasks(taskGroup) {
     return (
-      <ul className="mt-6 space-y-2">
+      <ul className="divided-list">
         {taskGroup.map((task) => {
           const isBusy = busyTaskIds.includes(task.id);
           const isEditing = editingId === task.id;
+          const milestoneName = milestoneOptions.milestones.find((milestone) => milestone.id === task.milestoneId)?.name;
 
           return (
             <li
               key={task.id}
-              className="flex min-h-16 flex-wrap items-center justify-between gap-3 rounded-md border border-stone-200 bg-white px-4 py-3 hover:bg-stone-50"
+              className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-1 py-3 hover:bg-surface/60 sm:px-2"
             >
               {isEditing ? (
                 <form
-                  onSubmit={(event) => handleSaveEdit(event, task.id)}
+                  onSubmit={(event) => handleSaveEdit(event, task)}
                   className="flex w-full flex-wrap items-center gap-2"
                 >
                   <label htmlFor={`edit-task-${task.id}`} className="sr-only">
@@ -209,13 +197,15 @@ function Tasks() {
                     maxLength={200}
                     disabled={isBusy}
                     autoFocus
-                    className="min-h-10 min-w-0 flex-1 rounded-md border border-stone-300 bg-white px-3 py-1.5 text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-800 disabled:opacity-60"
+                    className="min-h-11 min-w-0 flex-1 rounded-lg border border-field-border bg-surface px-3 py-1.5 text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60"
                   />
+                  <MilestonePicker id={`edit-task-milestone-${task.id}`} options={milestoneOptions}
+                    value={editingMilestoneId} onChange={setEditingMilestoneId} disabled={isBusy} />
                   <div className="flex items-center gap-2">
                     <button
                       type="submit"
                       disabled={isBusy}
-                      className="cursor-pointer rounded-md border border-green-800 bg-green-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-800 disabled:cursor-wait disabled:opacity-60"
+                      className="min-h-11 cursor-pointer rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-60"
                     >
                       {isBusy ? 'Saving...' : 'Save'}
                     </button>
@@ -223,54 +213,37 @@ function Tasks() {
                       type="button"
                       onClick={cancelEditing}
                       disabled={isBusy}
-                      className="cursor-pointer rounded-md border border-stone-200 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-800 disabled:opacity-60"
+                      className="min-h-11 cursor-pointer rounded-lg border border-stroke bg-surface px-3 py-1.5 text-sm font-medium hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60"
                     >
                       Cancel
                     </button>
                   </div>
+                  <div className="w-full border-t border-stroke pt-2">
+                    <button type="button" disabled={isBusy} onClick={() => handleDeleteTask(task.id)}
+                      className="secondary-control cursor-pointer text-danger disabled:opacity-60">Delete task</button>
+                  </div>
                 </form>
               ) : (
                 <>
-                  <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-4">
-                    <input
-                      type="checkbox"
+                  <div className="flex min-w-0 flex-1 items-center gap-1">
+                    <CompletionControl
+                      id={`task-completion-${task.id}`}
+                      label={task.name}
                       checked={Boolean(task.completed)}
                       disabled={isBusy}
                       onChange={() => toggleTask(task)}
-                      className="size-5 shrink-0 cursor-pointer accent-green-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-800 disabled:cursor-wait"
                     />
-
-                    <span
-                      className={`min-w-0 break-words ${
-                        task.completed
-                          ? 'text-stone-500 line-through'
-                          : 'text-stone-900'
-                      }`}
-                    >
-                      {task.name}
-                    </span>
-                  </label>
-
-                  <div className="flex shrink-0 items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => startEditing(task)}
-                      disabled={isBusy || busyTaskIds.includes(editingId)}
-                      aria-label={`Edit ${task.name}`}
-                      className="cursor-pointer rounded-md border border-stone-200 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-800 disabled:opacity-60"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteTask(task.id)}
-                      disabled={isBusy}
-                      aria-label={`Delete ${task.name}`}
-                      className="cursor-pointer rounded-md border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:cursor-wait disabled:opacity-60"
-                    >
-                      Delete
-                    </button>
+                    <div className="min-w-0">
+                      <label htmlFor={`task-completion-${task.id}`} className={`block cursor-pointer break-words ${task.completed ? 'text-muted' : 'text-foreground'}`}>
+                        {task.name}
+                      </label>
+                      {milestoneName && <div className="mt-1"><MilestoneChip id={task.milestoneId} name={milestoneName} /></div>}
+                    </div>
                   </div>
+
+                  <button id={`task-edit-${task.id}`} type="button" aria-label={`Edit ${task.name}`}
+                    disabled={isBusy || busyTaskIds.includes(editingId)} onClick={() => startEditing(task)}
+                    className="secondary-control cursor-pointer disabled:opacity-60">Edit</button>
                 </>
               )}
             </li>
@@ -281,7 +254,7 @@ function Tasks() {
   }
 
   // loading state
-  if (loading) {
+  if (!tasks && !loadError) {
     return (
       <div className="loading" role="status">
         Loading Data...
@@ -290,18 +263,15 @@ function Tasks() {
   }
 
   // network error state
-  if (networkError) {
+  if (loadError) {
     return (
       <div className="network-error">
         <p role="alert">Unable to load your tasks. Please refresh the page to try again.</p>
-        <details className="mt-4 rounded-md border border-stroke bg-surface p-4">
-          <summary className="cursor-pointer rounded-sm font-medium text-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus">Technical details</summary>
-          <p className="mt-3 break-words text-sm text-muted">{networkError}</p>
-        </details>
+        <p className="mt-3 break-words text-sm text-muted">{loadError}</p>
         <button
           type="button"
-          onClick={retryLoadTasks}
-          className="mt-4 cursor-pointer rounded-md border border-stone-300 bg-white px-4 py-2 font-medium text-stone-900 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-800"
+          onClick={reload}
+          className="secondary-control mt-4 cursor-pointer"
         >
           Try again
         </button>
@@ -316,18 +286,18 @@ function Tasks() {
   // successful data fetch
   return (
     <div className="page tasks-page">
-      <h2 className="my-[0.83em] text-2xl font-bold">
+      <h2 className="mb-6 text-3xl font-bold tracking-tight">
         {user?.name ? `${user.name}'s Tasks` : 'Tasks'}
       </h2>
 
       {actionError && (
-        <p role="alert" className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+        <p role="alert" className="mb-4 rounded-lg border border-danger bg-surface px-4 py-3 text-danger">
           {actionError}
         </p>
       )}
 
       {/* Create New Task Form */}
-      <form onSubmit={handleCreateTask} className="mt-4 flex flex-col gap-3 sm:flex-row">
+      <form onSubmit={handleCreateTask} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
         <label htmlFor="new-task-input" className="sr-only">
           New task name
         </label>
@@ -339,12 +309,16 @@ function Tasks() {
           placeholder="Add a new task..."
           maxLength={200}
           disabled={creating}
-          className="min-h-12 flex-1 rounded-md border border-stone-200 bg-white px-4 py-2 text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-800 disabled:opacity-60"
+          className="min-h-12 min-w-0 flex-1 rounded-lg border border-field-border bg-surface px-4 py-2 text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60"
         />
+        <div className="sm:w-48">
+          <MilestonePicker id="new-task-milestone" options={milestoneOptions}
+            value={newMilestoneId} onChange={setNewMilestoneId} disabled={creating} />
+        </div>
         <button
           type="submit"
           disabled={creating}
-          className="min-h-12 cursor-pointer rounded-md border border-stone-200 bg-white px-5 py-2 font-medium text-stone-900 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-800 disabled:cursor-wait disabled:opacity-60"
+          className="min-h-12 cursor-pointer rounded-lg bg-primary px-5 py-2 font-medium text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-60"
         >
           {creating ? 'Adding...' : 'Add Task'}
         </button>
@@ -352,21 +326,20 @@ function Tasks() {
 
       {/* Tasks List */}
       {/* TODO: remove this when we develop the project more */}
-      <section aria-labelledby="active-tasks" className="mt-6">
-        <h3 id="active-tasks" className="mb-3 font-semibold">Active tasks ({activeTasks.length})</h3>
-        {renderTasks(activeTasks)}
-        {activeTasks.length === 0 && <p className="text-muted">No active tasks.</p>}
+      <section aria-labelledby="task-list-heading" className="mt-6 space-y-3">
+        <ViewSwitcher label="Task views" value={view} onChange={setView}
+          views={[['active', `Active (${activeTasks.length})`], ['completed', `Completed (${completedTasks.length})`]]} />
+        <h3 id="task-list-heading" tabIndex={-1} className="text-lg font-semibold">{view === 'active' ? 'Active tasks' : 'Completed tasks'}</h3>
+        <div hidden={view !== 'active'}>
+          {activeTasks.length > 0 ? renderTasks(activeTasks) : <p className="text-muted">No active tasks.</p>}
+        </div>
+        <div hidden={view !== 'completed'}>
+          {completedTasks.length > 0 ? renderTasks(completedTasks) : <p className="text-muted">No completed tasks.</p>}
+        </div>
       </section>
-      {completedTasks.length > 0 && (
-        <details className="mt-6 rounded-md border border-stroke bg-surface p-4">
-          <summary className="cursor-pointer rounded-sm font-medium text-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus">
-            Completed tasks ({completedTasks.length})
-          </summary>
-          <div className="mt-4">
-            {renderTasks(completedTasks)}
-          </div>
-        </details>
-      )}
+      <div className="mt-3">
+        <CompletionNotice change={change} busy={busyTaskIds.length > 0} undoId="undo-task-change" />
+      </div>
       {/* Announce updated counts without moving focus. */}
       <p role="status" className="sr-only">{activeTasks.length} active tasks. {completedTasks.length} completed tasks.</p>
     </div>
