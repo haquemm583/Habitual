@@ -13,7 +13,7 @@ function AppLayout() {
   const menuRef = useRef(null);
   const hoverTimer = useRef(null);
   const { pathname } = useLocation();
-  const [sidebarPinned, setSidebarPinned] = useState(false);
+  const [sidebarPinned, setSidebarPinned] = useState(true);
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const [sidebarFocused, setSidebarFocused] = useState(false);
   // Keep navigation open while pinned, hovered, or keyboard focused.
@@ -79,7 +79,7 @@ function AppLayout() {
         </div>
       </dialog>
       <div className="flex min-w-0 flex-1 flex-col">
-        <main className="mx-auto w-full max-w-[720px] flex-1 px-6 pt-20 pb-12 md:py-12">
+        <main className="mx-auto w-full max-w-[720px] flex-1 px-6 pt-20 pb-12 has-[[data-wide-layout]]:max-w-5xl md:py-12">
           <div key={pathname} className="w-full motion-safe:animate-page-enter">
             <Outlet />
           </div>

@@ -81,6 +81,8 @@ function Sidebar({ onNavigate, collapsed = false, pinned = false, onToggle }) {
   }
 
   function iconAccessibility(label) {
+    if (pinned || !onToggle) return { 'aria-label': label };
+
     function showTooltip(event) {
       keepTooltip();
       const bounds = event.currentTarget.getBoundingClientRect();
@@ -154,7 +156,7 @@ function Sidebar({ onNavigate, collapsed = false, pinned = false, onToggle }) {
       )}
 
       <nav id={onToggle ? 'desktop-navigation' : undefined} aria-label="Main navigation" className="mt-4 flex flex-1 flex-col gap-1">
-        <NavLink onClick={navigate} {...iconAccessibility('Dashboard')} className={navLinkClass} to="/" end><SidebarIcon name="dashboard" /><SidebarLabel collapsed={collapsed}>Dashboard</SidebarLabel></NavLink>  {/* end is needed otherwise the slash will match all links */}
+        <NavLink onClick={navigate} {...iconAccessibility('Today')} className={navLinkClass} to="/" end><SidebarIcon name="dashboard" /><SidebarLabel collapsed={collapsed}>Today</SidebarLabel></NavLink>  {/* end is needed otherwise the slash will match all links */}
         {!loading && !user && <NavLink onClick={navigate} {...iconAccessibility('Login')} className={navLinkClass} to="/login"><SidebarIcon name="login" /><SidebarLabel collapsed={collapsed}>Login</SidebarLabel></NavLink>}
         {user && <NavLink onClick={navigate} {...iconAccessibility('Tasks')} className={navLinkClass} to="/tasks"><SidebarIcon name="tasks" /><SidebarLabel collapsed={collapsed}>Tasks</SidebarLabel></NavLink>}
         {user && <NavLink onClick={navigate} {...iconAccessibility('Habits')} className={navLinkClass} to="/habits"><SidebarIcon name="habits" /><SidebarLabel collapsed={collapsed}>Habits</SidebarLabel></NavLink>}
