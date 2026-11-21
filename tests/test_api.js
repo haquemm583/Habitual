@@ -8,6 +8,9 @@
 
     Created by: CJ Quintero
     Created on: 11/16/2026
+
+    Modified by: Joseph Duff
+    Modified on: 11/20/2026
 */
 import { test, describe, before } from "node:test";
 import assert from "node:assert/strict";
@@ -346,63 +349,220 @@ describe("/api/tasks", () => {
     });
 });
 
-describe('/api/milestones', () => {
-    /* testing suite for api/milestones endpoints */
+describe("/api/milestones", () => {
+    /* testing suite for the /api/milestones endpoints */
 
-    let cookie
-    let otherCookie
-    let milestoneId
+    let cookie;
+    let otherCookie;
+    let milestoneId;
 
     before(async () => {
-        cookie = await registerAndLogin(testUser)
-        otherCookie = await registerAndLogin(otherUser)
-    })
+        cookie = await registerAndLogin(testUser);
+        otherCookie = await registerAndLogin(otherUser);
+    });
 
-    test("milestones require login", async () => {
+    test("requires login", async () => {
         /* tests that the milestones endpoints reject requests with no session */
-
         const res = await request("GET", "/api/milestones");
 
         assert.equal(res.status, 401);
         assert.deepEqual(res.data, { error: "Login required." });
-    })
+    });
 
-    test('create milestone', async () => {
-        /* tests a milestone can be created properly */
-
-        const res = await request("POST", "/api/milestones", {
-            cookie,
-            body: {
-                name: "test milestone",
-                description: "test milestone description",
-                target_date: '2026-12-01'
-            }
-        })
+    test("POST creates a milestone with just a name", async () => {
+        /* tests that the description and dates are optional and default to null */
+        const res = await request("POST", "/api/milestones", { cookie, body: { name: "Run a 5k" } });
 
         // check for expected fields in the response
-        assert.equal(res.status, 201)
-        assert.ok(res.data.id, 'missing id')
-        assert.equal(res.data.name, 'test milestone')
-        assert.equal(res.data.description, 'test milestone description')
-        assert.equal(res.data.target_date, '2026-12-01')
+        assert.equal(res.status, 201);
+        assert.ok(res.data.id, "missing id");
+        assert.equal(res.data.name, "Run a 5k");
+        assert.equal(res.data.description, null);
+        assert.equal(res.data.targetDate, null);
+        assert.equal(res.data.completedOn, null);
 
-        // save this created milestone for use in other tests
-        milestoneId = res.data.id
-    })
+        // used for other tests
+        milestoneId = res.data.id;
+    });
 
-    test('get specific milestone', async () => {
-        /* tests a specific milestone can be fetched by id */
+    test("POST saves a description and target date", async () => {
+        /* tests that the target date comes back as the same plain YYYY-MM-DD string */
+        const res = await request("POST", "/api/milestones", {
+            cookie,
+            body: { name: "Read 12 books", description: "One a month", targetDate: "2098-12-31" },
+        });
 
-        const expected_name = 'test milestone'
-        const expected_desc = 'test milestone description'
-        const expected_date = '2026-12-01'
+        assert.equal(res.status, 201);
+        assert.equal(res.data.description, "One a month");
+        assert.equal(res.data.targetDate, "2098-12-31");
+    });
 
-        const res = await request('GET', `/api/milestones/${milestoneId}`, { cookie })
+    test("POST rejects an empty name", async () => {
+        /* tests that a blank milestone name is rejected */
+        const res = await request("POST", "/api/milestones", { cookie, body: { name: "   " } });
 
-        assert.equal(res.status, 200)
-        assert.equal(res.data.id, milestoneId)
-        assert.equal(res.data.name, expected_name)
-        assert.equal(res.data.description, expected_desc)
-        assert.equal(res.data.target_date, expected_date)
-    })
-})
+        assert.equal(res.status, 400);
+        assert.deepEqual(res.data, { error: "Milestone name must contain 1 to 200 characters." });
+    });
+
+    test("POST rejects an invalid target date", async () => {
+        /* tests that dates must be real dates written as YYYY-MM-DD */
+        const badFormat = await request("POST", "/api/milestones", {
+            cookie,
+            body: { name: "Bad date", targetDate: "12/31/2098" },
+        });
+        assert.equal(badFormat.status, 400);
+        assert.deepEqual(badFormat.data, { error: "Target date must be YYYY-MM-DD." });
+
+        // right format, but February 30th does not exist
+        const notReal = await request("POST", "/api/milestones", {
+            cookie,
+            body: { name: "Bad date", targetDate: "2098-02-30" },
+        });
+        assert.equal(notReal.status, 400);
+        assert.deepEqual(notReal.data, { error: "Target date must be YYYY-MM-DD." });
+    });
+
+    test("GET lists the user's milestones with the soonest target date first", async () => {
+        /* tests the list order: soonest target date first, milestones with no date last */
+        const none = await request("POST", "/api/milestones", { cookie, body: { name: "No date" } });
+        const late = await request("POST", "/api/milestones", {
+            cookie,
+            body: { name: "Late", targetDate: "2099-06-01" },
+        });
+        const soon = await request("POST", "/api/milestones", {
+            cookie,
+            body: { name: "Soon", targetDate: "2098-06-01" },
+        });
+
+        const res = await request("GET", "/api/milestones", { cookie });
+        assert.equal(res.status, 200);
+
+        // only look at the three milestones from this test since others exist from other tests
+        const ids = [none.data.id, late.data.id, soon.data.id];
+        const order = res.data.filter((item) => ids.includes(item.id)).map((item) => item.id);
+        assert.deepEqual(order, [soon.data.id, late.data.id, none.data.id]);
+    });
+
+    test("GET returns a single milestone", async () => {
+        /* tests getting a milestone by its id */
+        const res = await request("GET", `/api/milestones/${milestoneId}`, { cookie });
+
+        assert.equal(res.status, 200);
+        assert.equal(res.data.id, milestoneId);
+        assert.equal(res.data.name, "Run a 5k");
+    });
+
+    test("GET rejects an invalid id", async () => {
+        /* tests that ids that are not positive whole numbers are rejected */
+        const res = await request("GET", "/api/milestones/abc", { cookie });
+
+        assert.equal(res.status, 400);
+        assert.deepEqual(res.data, { error: "Invalid milestone ID." });
+    });
+
+    test("PATCH updates a milestone and saves it", async () => {
+        /* tests that only the fields that are sent change, and that the change is saved */
+        const res = await request("PATCH", `/api/milestones/${milestoneId}`, {
+            cookie,
+            body: { name: "Run a 10k", targetDate: "2098-03-04" },
+        });
+
+        // update successful
+        assert.equal(res.status, 200);
+        assert.equal(res.data.name, "Run a 10k");
+        assert.equal(res.data.targetDate, "2098-03-04");
+
+        // ensure the update is saved when getting the milestone again
+        const saved = await request("GET", `/api/milestones/${milestoneId}`, { cookie });
+        assert.equal(saved.data.name, "Run a 10k");
+        assert.equal(saved.data.targetDate, "2098-03-04");
+
+        // null clears an optional field
+        const cleared = await request("PATCH", `/api/milestones/${milestoneId}`, {
+            cookie,
+            body: { targetDate: null },
+        });
+        assert.equal(cleared.status, 200);
+        assert.equal(cleared.data.targetDate, null);
+        assert.equal(cleared.data.name, "Run a 10k");
+    });
+
+    test("PATCH marks a milestone completed and open again", async () => {
+        /* tests setting the completed date and then clearing it */
+        const done = await request("PATCH", `/api/milestones/${milestoneId}`, {
+            cookie,
+            body: { completedOn: "2026-11-20" },
+        });
+        assert.equal(done.status, 200);
+        assert.equal(done.data.completedOn, "2026-11-20");
+
+        const reopened = await request("PATCH", `/api/milestones/${milestoneId}`, {
+            cookie,
+            body: { completedOn: null },
+        });
+        assert.equal(reopened.status, 200);
+        assert.equal(reopened.data.completedOn, null);
+    });
+
+    test("PATCH rejects an empty update and invalid fields", async () => {
+        /* tests that an update needs at least one valid field */
+        const empty = await request("PATCH", `/api/milestones/${milestoneId}`, { cookie, body: {} });
+        assert.equal(empty.status, 400);
+
+        const badName = await request("PATCH", `/api/milestones/${milestoneId}`, {
+            cookie,
+            body: { name: "   " },
+        });
+        assert.equal(badName.status, 400);
+        assert.deepEqual(badName.data, { error: "Milestone name must contain 1 to 200 characters." });
+
+        const badDate = await request("PATCH", `/api/milestones/${milestoneId}`, {
+            cookie,
+            body: { completedOn: "yesterday" },
+        });
+        assert.equal(badDate.status, 400);
+        assert.deepEqual(badDate.data, { error: "Completed date must be YYYY-MM-DD." });
+    });
+
+    test("another user cannot see, update, or delete the milestone", async () => {
+        /* tests that users can only access their own milestones */
+
+        // test that another user cannot see another user's milestones
+        const list = await request("GET", "/api/milestones", { cookie: otherCookie });
+        assert.ok(!list.data.some((item) => item.id === milestoneId), "another user's milestone was returned");
+
+        const get = await request("GET", `/api/milestones/${milestoneId}`, { cookie: otherCookie });
+        assert.equal(get.status, 404);
+
+        // test that another user cannot update another user's milestones
+        const update = await request("PATCH", `/api/milestones/${milestoneId}`, {
+            cookie: otherCookie,
+            body: { name: "Hacked" },
+        });
+        assert.equal(update.status, 404);
+
+        // test that another user cannot delete another user's milestones
+        const remove = await request("DELETE", `/api/milestones/${milestoneId}`, { cookie: otherCookie });
+        assert.equal(remove.status, 404);
+
+        // ensure the milestone was not changed by any of that
+        const saved = await request("GET", `/api/milestones/${milestoneId}`, { cookie });
+        assert.equal(saved.data.name, "Run a 10k");
+    });
+
+    test("DELETE deletes a milestone", async () => {
+        /* tests deleting a milestone and that it is gone afterwards */
+
+        // delete milestone
+        const res = await request("DELETE", `/api/milestones/${milestoneId}`, { cookie });
+        assert.equal(res.status, 204);
+
+        // ensure it was deleted from db
+        const list = await request("GET", "/api/milestones", { cookie });
+        assert.ok(!list.data.some((item) => item.id === milestoneId), "deleted milestone is still listed");
+
+        const get = await request("GET", `/api/milestones/${milestoneId}`, { cookie });
+        assert.equal(get.status, 404);
+    });
+});
