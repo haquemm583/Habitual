@@ -7,6 +7,8 @@
   created on: 11/07/2026
 */
 import express from 'express'
+import { extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import pool from './db.js';
 import authRoutes from './routes/auth.js';
 import taskRoutes from './routes/tasks.js';
@@ -18,6 +20,11 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 const app = express();
 const port = process.env.PORT || 3000
+
+if (process.env.RENDER === 'true') {
+  // Render terminates HTTPS before forwarding requests to Express.
+  app.set('trust proxy', 1);
+}
 
 app.use(express.json({ limit: '16kb' }));
 app.use(sessionMiddleware);
@@ -36,6 +43,15 @@ app.get("/api/health", async (req, res) => {
     res.status(503).json({ status: 'error', database: 'unavailable' });
   }
 });
+
+if (app.get('env') === 'production') {
+  const frontend = fileURLToPath(new URL('../../frontend/dist/', import.meta.url));
+  app.use(express.static(frontend, { index: false }));
+  app.get('/{*path}', (req, res, next) => {
+    if (/^\/api(?:\/|$)/i.test(req.path) || extname(req.path) || !req.accepts('html')) return next();
+    res.sendFile('index.html', { root: frontend });
+  });
+}
 
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);
