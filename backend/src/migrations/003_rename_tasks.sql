@@ -1,4 +1,6 @@
 -- Rename the original one-time task table without rewriting any rows.
+-- this renames the old table to tasks and updates
+-- indexes and constraints to match the new name.
 DO $$
 DECLARE
     old_constraint TEXT;

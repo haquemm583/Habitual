@@ -1,5 +1,7 @@
 -- Applied on backend startup for both new and existing database volumes.
 -- Recurring habits are stored separately from one-time tasks.
+
+-- habits table
 CREATE TABLE IF NOT EXISTS recurring_habits (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -12,6 +14,9 @@ CREATE TABLE IF NOT EXISTS recurring_habits (
 
 CREATE INDEX IF NOT EXISTS recurring_habits_user_idx ON recurring_habits (user_id);
 
+-- habit_schedules table
+-- each schedule  references a habit and defines the days of the week
+-- each habit is scheduled for
 CREATE TABLE IF NOT EXISTS habit_schedules (
     habit_id INTEGER NOT NULL REFERENCES recurring_habits(id) ON DELETE CASCADE,
     effective_date DATE NOT NULL,
@@ -20,6 +25,9 @@ CREATE TABLE IF NOT EXISTS habit_schedules (
     CHECK (cardinality(weekdays) BETWEEN 1 AND 7 AND weekdays <@ ARRAY[0,1,2,3,4,5,6])
 );
 
+
+-- habit active periods table
+-- used to track when a hbit was started and when it ended
 CREATE TABLE IF NOT EXISTS habit_active_periods (
     id SERIAL PRIMARY KEY,
     habit_id INTEGER NOT NULL REFERENCES recurring_habits(id) ON DELETE CASCADE,
@@ -31,6 +39,8 @@ CREATE INDEX IF NOT EXISTS habit_active_periods_habit_idx ON habit_active_period
 CREATE UNIQUE INDEX IF NOT EXISTS habit_one_open_period_idx
     ON habit_active_periods (habit_id) WHERE ended_on IS NULL;
 
+-- habit checkins
+-- used to track when a habit was completed on a given day
 CREATE TABLE IF NOT EXISTS habit_checkins (
     habit_id INTEGER NOT NULL REFERENCES recurring_habits(id) ON DELETE CASCADE,
     completed_on DATE NOT NULL,

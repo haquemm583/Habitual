@@ -1,5 +1,7 @@
 ALTER TABLE recurring_habits ADD COLUMN IF NOT EXISTS milestone_id INTEGER;
 
+-- Add a foreign key constraint to the milestone_id column, referencing the milestones table
+-- Use a DO block so this only runs once if the constraint doesn't already exist
 DO $$
 BEGIN
     IF NOT EXISTS (
